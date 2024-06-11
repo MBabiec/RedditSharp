@@ -11,9 +11,10 @@
         <StackPanel>
             <Image x:Name="currentImage" Stretch="Uniform" Height="700" Margin="40"></Image>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button x:Name="Back" Content="Back" Width="100" Height="40" Margin="10"/>
+                <Button x:Name="Back" Content="Back" Width="100" Height="40" Margin="10" Click="Back_Click"/>
                 <Button x:Name="Next" Content="Next" Width="100" Height="40" Margin="10" Click="Next_Click"/>
             </StackPanel>
         </StackPanel>
+        <TextBox Name="imageCounter" HorizontalAlignment="Left" Margin="10,802,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="35" Height="25" IsReadOnly="True" FontSize="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="0"/>
     </Grid>
 </Window>

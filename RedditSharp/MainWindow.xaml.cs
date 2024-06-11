@@ -16,6 +16,7 @@ using Reddit;
 using Reddit.Controllers;
 using Reddit.Models;
 using Reddit.Things;
+using RedditSharp.Models;
 
 namespace RedditSharp
 {
@@ -24,19 +25,29 @@ namespace RedditSharp
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Redditer reddit;
+        private readonly Redditer reddit;
         public MainWindow()
         {
             InitializeComponent();
             reddit = new Redditer();
+            reddit.OnImageCountUpdated += ImageCountUpdate;
         }
         private void Next_Click(object sender, RoutedEventArgs e)
         {
-            var image = reddit.GetNextImage();
+            ImageEntry image = reddit.GetNextImage();
             if (image != null)
             {
-                currentImage.Source = image;
+                currentImage.Source = image.BitmapImage;
             }
+        }
+        private void Back_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+        private void ImageCountUpdate(int count)
+        {
+            Debug.WriteLine($"New image count {count}");
+            Dispatcher.Invoke(new Action(() => {imageCounter.Text = count.ToString();}));
         }
     }
 }

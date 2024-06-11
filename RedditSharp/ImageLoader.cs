@@ -35,7 +35,7 @@ namespace RedditSharp
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred while loading the image: {ex.Message}");
+                MessageBox.Show($"An error occurred while loading the image: {ex.Message} from URL: {imageUrl}");
                 return null;
             }
         }

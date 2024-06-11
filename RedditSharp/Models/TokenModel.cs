@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RedditSharp
+namespace RedditSharp.Models
 {
     internal class TokenModel
     {
