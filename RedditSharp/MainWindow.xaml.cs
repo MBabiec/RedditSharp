@@ -32,21 +32,32 @@ namespace RedditSharp
             reddit = new Redditer();
             reddit.OnImageCountUpdated += ImageCountUpdate;
         }
+        private void SetGuiItems(ImageEntry entry)
+        {
+            currentImage.Source = entry.BitmapImage;
+            subredditDisplay.Text = entry.subredditName;
+            upvotesDisplay.Text = entry.upvotes.ToString();
+        }
         private void Next_Click(object sender, RoutedEventArgs e)
         {
             ImageEntry image = reddit.GetNextImage();
             if (image != null)
             {
-                currentImage.Source = image.BitmapImage;
+                SetGuiItems(image);
+                imageCounter.Text = (int.Parse(imageCounter.Text) - 1).ToString();
             }
         }
         private void Back_Click(object sender, RoutedEventArgs e)
         {
-
+            ImageEntry image = reddit.GetPrevImage();
+            if (image != null)
+            {
+                SetGuiItems(image);
+                imageCounter.Text = (int.Parse(imageCounter.Text) + 1).ToString();
+            }
         }
         private void ImageCountUpdate(int count)
         {
-            Debug.WriteLine($"New image count {count}");
             Dispatcher.Invoke(new Action(() => {imageCounter.Text = count.ToString();}));
         }
     }

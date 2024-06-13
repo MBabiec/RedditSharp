@@ -5,16 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RedditSharp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="900" Width="600"
+        Title="MainWindow" Height="1000" Width="1000"
         Background="DimGray">
     <Grid>
         <StackPanel>
-            <Image x:Name="currentImage" Stretch="Uniform" Height="700" Margin="40"></Image>
+            <Image x:Name="currentImage" Stretch="Uniform" Height="880" Margin="10"></Image>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button x:Name="Back" Content="Back" Width="100" Height="40" Margin="10" Click="Back_Click" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                <Button x:Name="Next" Content="Next" Width="100" Height="40" Margin="10" Click="Next_Click" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <TextBox Name="imageCounter" Width="70" Margin="10" IsReadOnly="True" FontSize="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="0"/>
+                <Button x:Name="Back" Content="Back" Width="100" Height="40" Margin="10" Click="Back_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Button x:Name="Next" Content="Next" Width="100" Height="40" Margin="10" Click="Next_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <TextBox x:Name="subredditDisplay" IsReadOnly="True" FontSize="28" Width="200" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <TextBox x:Name="upvotesDisplay" IsReadOnly="True" FontSize="28" Width="100" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Button x:Name="Download" Content="Tego chce" Width="140" Height="40" Margin="10" Click="Next_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </StackPanel>
         </StackPanel>
-        <TextBox Name="imageCounter" HorizontalAlignment="Left" Margin="10,793,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="35" Height="40" IsReadOnly="True" FontSize="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="0"/>
     </Grid>
 </Window>

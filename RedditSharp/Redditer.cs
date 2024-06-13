@@ -1,6 +1,8 @@
 ﻿using Newtonsoft.Json;
 using Reddit;
 using Reddit.Controllers;
+using Reddit.Inputs;
+using Reddit.Inputs.Listings;
 using Reddit.Models;
 using Reddit.Things;
 using RedditSharp.Models;
@@ -25,7 +27,7 @@ namespace RedditSharp
             //LoadImageAsync(posts.URL);
             //LinkPost posts = (LinkPost)client.Subreddit(multis.Subreddits[0].Name).About().Posts.Hot[++imageCounter];
             //BitmapImage bitmapImage = await ImageLoader.LoadImageAsync(imageUrl);
-            imageHandler = new ImageHandler();
+            imageHandler = new();
             imageHandler.ImageLoaded += ImageLoadedCallback;
             StartWorker();
         }
@@ -37,36 +39,70 @@ namespace RedditSharp
 
         private static async Task Worker()
         {
-            int currentIndex = 0;
+            int currentIndex;
             string path = System.IO.Path.Combine("C:\\Users\\mbabiec\\Documents\\fun\\RedditSharp\\RedditSharp\\tokens.json");
             string json = System.IO.File.ReadAllText(path);
             var tokens = JsonConvert.DeserializeObject<TokenModel>(json);
             RedditClient client = new(tokens.AppID, tokens.RefreshToken);
             LabeledMulti multis = client.Account.Me.Multis()[0];
             DateTime startTime = DateTime.UtcNow;
+
             foreach (var subreddit in multis.Subreddits)
             {
                 int outdatedPosts = 0;
+                //var posts = client.Subreddit(subreddit.Name).About().Posts.Hot;
+                var posts = client.Models.Listings.Hot(new ListingsHotInput(limit:200), subreddit.Name).Data.Children;
+                DateTime lastGoodPost = startTime;
+                currentIndex = 0;
+                string lastGoodName = "";
                 do
                 {
-                    var linkPost = client.Subreddit(subreddit.Name).Posts.IHot[currentIndex++];
-                    if (linkPost is not LinkPost)
+                    try
                     {
-                        continue;
+                        var linkPost = posts[currentIndex++].Data;
+                        if (linkPost.IsSelf)
+                        {
+                            continue;
+                        }
+                        //if (linkPost is not LinkPost)
+                        //{
+                        //    continue;
+                        //}
+                        TimeSpan timePassed = startTime - linkPost.CreatedUTC;
+                        if (timePassed.TotalDays > 7)
+                        {
+                            outdatedPosts++;
+                        }
+                        else
+                        {
+                            outdatedPosts = 0;
+                        }
+                        if (outdatedPosts >= 10)
+                        {
+                            Debug.WriteLine($"Finished {subreddit.Name}");
+                            break;
+                        }
+                        if (linkPost.URL.Contains("gallery"))
+                        {
+                            Debug.WriteLine("Found gallery");
+                            var dupa = linkPost;
+                        }
+                        else
+                        {
+                            string imageName = subreddit.Name + "_" + linkPost.Id + System.IO.Path.GetExtension(linkPost.URL);
+                            imageHandler.AddImagesFromURL(linkPost.URL, imageName, subreddit.Name, linkPost.Ups);
+                            lastGoodPost = linkPost.CreatedUTC;
+                            lastGoodName = linkPost.Name;
+                        }
                     }
-                    TimeSpan timePassed = startTime - linkPost.Created;
-                    if (timePassed.TotalDays > 7)
+                    catch (Exception ex)
                     {
-                        outdatedPosts++;
+                        Debug.WriteLine($"Run out of images in {subreddit.Name} lastGoodPost {lastGoodPost} index {currentIndex} outdatedPosts {outdatedPosts}");
+                        posts = client.Models.Listings.Hot(new ListingsHotInput(after: lastGoodName), subreddit.Name).Data.Children;
                     }
-                    else
-                    {
-                        outdatedPosts = 0;
-                    }
-                    imageHandler.AddNewImage(((LinkPost)linkPost).URL, subreddit.Name, linkPost.UpVotes);
-                    await Task.Delay(200);
                 } while (outdatedPosts < 10);
             }
+            Debug.WriteLine("Finished lol");
         }
 
         private void StartWorker()
@@ -88,6 +124,10 @@ namespace RedditSharp
         public ImageEntry GetNextImage()
         {
             return imageHandler.GetNextImage();
+        }
+        public ImageEntry GetPrevImage()
+        {
+            return imageHandler.GetPrevImage();
         }
     }
 }

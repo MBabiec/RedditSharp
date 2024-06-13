@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using System.Windows;
+using System.Net;
+using System.Diagnostics;
 
 namespace RedditSharp
 {
@@ -17,6 +19,10 @@ namespace RedditSharp
             try
             {
                 byte[] imageData = await DownloadImageDataAsync(imageUrl);
+                if (imageData == null)
+                {
+                    return null;
+                }
 
                 using (MemoryStream ms = new(imageData))
                 {
@@ -44,7 +50,25 @@ namespace RedditSharp
         {
             using (HttpClient client = new())
             {
-                return await client.GetByteArrayAsync(imageUrl);
+                try
+                {
+                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(imageUrl);
+                    request.Method = "HEAD";
+                    HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                    if (response.ContentType.Contains("image"))
+                    {
+                        return await client.GetByteArrayAsync(imageUrl);
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+                catch (WebException ex)
+                {
+                    Debug.WriteLine($"Failed to download image at url {imageUrl} {ex.Message}");
+                    return null;
+                }
             }
         }
     }

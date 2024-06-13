@@ -15,13 +15,15 @@ namespace RedditSharp.Models
         public int width { get; set; }
         public int height { get; set; }
         public BitmapImage BitmapImage { get; set; }
-        public ImageEntry(string url, int upvotes, string subredditName, int width, int height, BitmapImage bitmapImage)
+        public string name { get; set; }
+        public ImageEntry(string url, int upvotes, string subredditName, int width, int height, string name, BitmapImage bitmapImage)
         {
             this.url = url;
             this.upvotes = upvotes;
             this.subredditName = subredditName;
             this.width = width;
             this.height = height;
+            this.name = name;
             BitmapImage = bitmapImage;
         }
     }
