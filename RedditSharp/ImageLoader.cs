@@ -41,7 +41,7 @@ namespace RedditSharp
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred while loading the image: {ex.Message} from URL: {imageUrl}");
+                Debug.WriteLine($"An error occurred while loading the image: {ex.Message} from URL: {imageUrl}");
                 return null;
             }
         }
@@ -50,6 +50,7 @@ namespace RedditSharp
         {
             using (HttpClient client = new())
             {
+                client.Timeout = TimeSpan.FromMinutes(10);
                 try
                 {
                     HttpWebRequest request = (HttpWebRequest)WebRequest.Create(imageUrl);

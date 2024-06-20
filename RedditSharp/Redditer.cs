@@ -51,7 +51,7 @@ namespace RedditSharp
             {
                 int outdatedPosts = 0;
                 //var posts = client.Subreddit(subreddit.Name).About().Posts.Hot;
-                var posts = client.Models.Listings.Hot(new ListingsHotInput(limit:200), subreddit.Name).Data.Children;
+                var posts = client.Models.Listings.Hot(new ListingsHotInput(limit: 100), subreddit.Name).Data.Children;
                 DateTime lastGoodPost = startTime;
                 currentIndex = 0;
                 string lastGoodName = "";
@@ -85,6 +85,14 @@ namespace RedditSharp
                         if (linkPost.URL.Contains("gallery"))
                         {
                             Debug.WriteLine("Found gallery");
+                            foreach (var item in linkPost.MediaMetadata)
+                            {
+                                int cnt = 0;
+                                string imageName = subreddit.Name + "_" + linkPost.Id + System.IO.Path.GetExtension(linkPost.URL) + "_" + cnt++.ToString();
+                                imageHandler.AddImagesFromURL(item.Value.s.u, imageName, subreddit.Name, linkPost.Ups);
+                                lastGoodPost = linkPost.CreatedUTC;
+                                lastGoodName = linkPost.Name;
+                            }
                             var dupa = linkPost;
                         }
                         else
@@ -99,6 +107,7 @@ namespace RedditSharp
                     {
                         Debug.WriteLine($"Run out of images in {subreddit.Name} lastGoodPost {lastGoodPost} index {currentIndex} outdatedPosts {outdatedPosts}");
                         posts = client.Models.Listings.Hot(new ListingsHotInput(after: lastGoodName), subreddit.Name).Data.Children;
+                        currentIndex = 0;
                     }
                 } while (outdatedPosts < 10);
             }
