@@ -16,7 +16,7 @@
                 <Button x:Name="Next" Content="Next" Width="100" Height="40" Margin="10" Click="Next_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 <TextBox x:Name="subredditDisplay" IsReadOnly="True" FontSize="28" Width="200" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 <TextBox x:Name="upvotesDisplay" IsReadOnly="True" FontSize="28" Width="100" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                <Button x:Name="Download" Content="Tego chce" Width="140" Height="40" Margin="10" Click="Next_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Button x:Name="Download" Content="Tego chce" Width="140" Height="40" Margin="10" Click="Download_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </StackPanel>
         </StackPanel>
     </Grid>

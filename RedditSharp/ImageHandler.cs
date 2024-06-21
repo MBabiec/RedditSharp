@@ -23,7 +23,7 @@ namespace RedditSharp
             AddNewImage(url, name, subredditName, upvotes);
         }
 
-        public async void AddNewImage(string url, string name, string subredditName, int upvotes)
+        private async void AddNewImage(string url, string name, string subredditName, int upvotes)
         {
             entries.Add(new ImageEntry(url, upvotes, subredditName, 0, 0, name));
             if (index < -1)
@@ -62,7 +62,7 @@ namespace RedditSharp
             int downloadIndex = 0;
             while(true)
             {
-                if (images.Count < 20 && entries.Count > (index == -1 ? 0 : index))
+                if (images.Count < 30 && entries.Count > (index == -1 ? 0 : index))
                 {
                     var currentEntry = entries[downloadIndex++];
                     BitmapImage bitmap = await ImageLoader.LoadImageAsync(currentEntry.Url);

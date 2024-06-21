@@ -26,6 +26,7 @@ namespace RedditSharp
     public partial class MainWindow : Window
     {
         private readonly Redditer reddit;
+        private string imageName;
         public MainWindow()
         {
             InitializeComponent();
@@ -34,6 +35,7 @@ namespace RedditSharp
         }
         private void SetGuiItems(MyImage entry)
         {
+            imageName = entry.Name;
             currentImage.Source = entry.BitmapImage;
             subredditDisplay.Text = entry.SubredditName;
             upvotesDisplay.Text = entry.Upvotes.ToString();
@@ -54,6 +56,15 @@ namespace RedditSharp
             {
                 SetGuiItems(image);
                 imageCounter.Text = (int.Parse(imageCounter.Text) + 1).ToString();
+            }
+        }
+        private void Download_Click(object sender, RoutedEventArgs e)
+        {
+            BitmapEncoder encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create((BitmapSource)currentImage.Source));
+            using (var fileStream = new System.IO.FileStream("C:\\Users\\mbabiec\\Documents\\fun\\RedditSharp\\RedditSharp\\downloads\\" + imageName, System.IO.FileMode.Create))
+            {
+                encoder.Save(fileStream);
             }
         }
         private void ImageCountUpdate(int count)
