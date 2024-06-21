@@ -32,15 +32,15 @@ namespace RedditSharp
             reddit = new Redditer();
             reddit.OnImageCountUpdated += ImageCountUpdate;
         }
-        private void SetGuiItems(ImageEntry entry)
+        private void SetGuiItems(MyImage entry)
         {
             currentImage.Source = entry.BitmapImage;
-            subredditDisplay.Text = entry.subredditName;
-            upvotesDisplay.Text = entry.upvotes.ToString();
+            subredditDisplay.Text = entry.SubredditName;
+            upvotesDisplay.Text = entry.Upvotes.ToString();
         }
         private void Next_Click(object sender, RoutedEventArgs e)
         {
-            ImageEntry image = reddit.GetNextImage();
+            MyImage image = reddit.GetNextImage();
             if (image != null)
             {
                 SetGuiItems(image);
@@ -49,7 +49,7 @@ namespace RedditSharp
         }
         private void Back_Click(object sender, RoutedEventArgs e)
         {
-            ImageEntry image = reddit.GetPrevImage();
+            MyImage image = reddit.GetPrevImage();
             if (image != null)
             {
                 SetGuiItems(image);

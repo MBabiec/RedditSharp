@@ -9,22 +9,21 @@ namespace RedditSharp.Models
 {
     internal class ImageEntry
     {
-        public string url { get; set; }
-        public int upvotes { get; set; }
-        public string subredditName { get; set; }
-        public int width { get; set; }
-        public int height { get; set; }
-        public BitmapImage BitmapImage { get; set; }
-        public string name { get; set; }
-        public ImageEntry(string url, int upvotes, string subredditName, int width, int height, string name, BitmapImage bitmapImage)
+        public ImageEntry(string url, int upvotes, string subredditName, int width, int height, string name)
         {
-            this.url = url;
-            this.upvotes = upvotes;
-            this.subredditName = subredditName;
-            this.width = width;
-            this.height = height;
-            this.name = name;
-            BitmapImage = bitmapImage;
+            Url = url;
+            Upvotes = upvotes;
+            SubredditName = subredditName;
+            Name = name;
+            Width = width;
+            Height = height;
         }
+
+        public string Url { get; set; }
+        public int Upvotes { get; set; }
+        public string SubredditName { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public string Name { get; set; }
     }
 }

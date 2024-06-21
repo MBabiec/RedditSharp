@@ -67,7 +67,7 @@ namespace RedditSharp
                 }
                 catch (WebException ex)
                 {
-                    Debug.WriteLine($"Failed to download image at url {imageUrl} {ex.Message}");
+                    Debug.WriteLine($"Failed to download image at Url {imageUrl} {ex.Message}");
                     return null;
                 }
             }

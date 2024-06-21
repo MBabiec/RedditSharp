@@ -64,10 +64,6 @@ namespace RedditSharp
                         {
                             continue;
                         }
-                        //if (linkPost is not LinkPost)
-                        //{
-                        //    continue;
-                        //}
                         TimeSpan timePassed = startTime - linkPost.CreatedUTC;
                         if (timePassed.TotalDays > 7)
                         {
@@ -130,11 +126,11 @@ namespace RedditSharp
             }
         }
 
-        public ImageEntry GetNextImage()
+        public MyImage GetNextImage()
         {
             return imageHandler.GetNextImage();
         }
-        public ImageEntry GetPrevImage()
+        public MyImage GetPrevImage()
         {
             return imageHandler.GetPrevImage();
         }
