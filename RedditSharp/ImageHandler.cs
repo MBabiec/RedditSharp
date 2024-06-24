@@ -13,6 +13,8 @@ namespace RedditSharp
 {
     internal class ImageHandler
     {
+        private const int BACK_IMAGES_THRESHOLD = 7;
+        private const int NEXT_IMAGES_THRESHOLD = 35;
         private readonly List<MyImage> images;
         private readonly List<ImageEntry> entries;
         private int index;
@@ -33,22 +35,23 @@ namespace RedditSharp
             else
             {
                 ImageLoaded?.Invoke(entries.Count);
+                //ImageLoaded?.Invoke(images.Count - index);
             }
         }
-        public MyImage GetNextImage()
+        public MyImage? GetNextImage()
         {
             if (index >= images.Count - 1)
             {
                 return null;
             }
-            if (index > 5)
+            if (index > BACK_IMAGES_THRESHOLD)
             {
                 images.RemoveAt(0);
                 index--;
             }
             return images[++index];
         }
-        public MyImage GetPrevImage()
+        public MyImage? GetPrevImage()
         {
             if (index >= 1)
             {
@@ -62,7 +65,7 @@ namespace RedditSharp
             int downloadIndex = 0;
             while(true)
             {
-                if (images.Count < 30 && entries.Count > (index == -1 ? 0 : index))
+                if (images.Count < NEXT_IMAGES_THRESHOLD && entries.Count > (index == -1 ? 0 : index))
                 {
                     var currentEntry = entries[downloadIndex++];
                     BitmapImage bitmap = await ImageLoader.LoadImageAsync(currentEntry.Url);
@@ -71,7 +74,7 @@ namespace RedditSharp
                         images.Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, currentEntry.SubredditName, bitmap.PixelWidth, bitmap.PixelHeight, currentEntry.Name, bitmap));
                     }
                 }
-                if (index > 5)
+                if (index > BACK_IMAGES_THRESHOLD)
                 {
                     images.RemoveAt(0);
                     index--;

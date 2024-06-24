@@ -25,12 +25,13 @@ namespace RedditSharp
     /// </summary>
     public partial class MainWindow : Window
     {
+        private const string DOWNLOAD_DIRECTORY = "downloads";
         private readonly Redditer reddit;
         private string imageName;
         public MainWindow()
         {
             InitializeComponent();
-            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "downloads");
+            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY);
             if (!System.IO.Directory.Exists(path) )
             {
                 System.IO.Directory.CreateDirectory(path);
@@ -48,7 +49,7 @@ namespace RedditSharp
         }
         private void Next_Click(object sender, RoutedEventArgs e)
         {
-            MyImage image = reddit.GetNextImage();
+            MyImage? image = reddit.GetNextImage();
             if (image != null)
             {
                 SetGuiItems(image);
@@ -57,7 +58,7 @@ namespace RedditSharp
         }
         private void Back_Click(object sender, RoutedEventArgs e)
         {
-            MyImage image = reddit.GetPrevImage();
+            MyImage? image = reddit.GetPrevImage();
             if (image != null)
             {
                 SetGuiItems(image);
@@ -68,7 +69,7 @@ namespace RedditSharp
         {
             BitmapEncoder encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create((BitmapSource)currentImage.Source));
-            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "downloads", imageName);
+            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY, imageName);
             using (var fileStream = new System.IO.FileStream(path, System.IO.FileMode.Create))
             {
                 encoder.Save(fileStream);
