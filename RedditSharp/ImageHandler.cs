@@ -68,7 +68,7 @@ namespace RedditSharp
                     BitmapImage bitmap = await ImageLoader.LoadImageAsync(currentEntry.Url);
                     if (bitmap != null)
                     {
-                        images.Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, currentEntry.SubredditName, currentEntry.Width, currentEntry.Height, currentEntry.Name, bitmap));
+                        images.Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, currentEntry.SubredditName, bitmap.PixelWidth, bitmap.PixelHeight, currentEntry.Name, bitmap));
                     }
                 }
                 if (index > 5)

@@ -30,6 +30,11 @@ namespace RedditSharp
         public MainWindow()
         {
             InitializeComponent();
+            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "downloads");
+            if (!System.IO.Directory.Exists(path) )
+            {
+                System.IO.Directory.CreateDirectory(path);
+            }
             reddit = new Redditer();
             reddit.OnImageCountUpdated += ImageCountUpdate;
         }
@@ -39,6 +44,7 @@ namespace RedditSharp
             currentImage.Source = entry.BitmapImage;
             subredditDisplay.Text = entry.SubredditName;
             upvotesDisplay.Text = entry.Upvotes.ToString();
+            dimensionsDisplay.Text = entry.Width.ToString() + "x" + entry.Height.ToString();
         }
         private void Next_Click(object sender, RoutedEventArgs e)
         {
