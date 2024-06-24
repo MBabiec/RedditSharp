@@ -9,6 +9,7 @@ using RedditSharp.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -40,7 +41,7 @@ namespace RedditSharp
         private static async Task Worker()
         {
             int currentIndex;
-            string path = System.IO.Path.Combine("C:\\Users\\mbabiec\\Documents\\fun\\RedditSharp\\RedditSharp\\tokens.json");
+            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "tokens.json");
             string json = System.IO.File.ReadAllText(path);
             var tokens = JsonConvert.DeserializeObject<TokenModel>(json);
             RedditClient client = new(tokens.AppID, tokens.RefreshToken);

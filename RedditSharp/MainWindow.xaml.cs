@@ -62,7 +62,8 @@ namespace RedditSharp
         {
             BitmapEncoder encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create((BitmapSource)currentImage.Source));
-            using (var fileStream = new System.IO.FileStream("C:\\Users\\mbabiec\\Documents\\fun\\RedditSharp\\RedditSharp\\downloads\\" + imageName, System.IO.FileMode.Create))
+            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "downloads", imageName);
+            using (var fileStream = new System.IO.FileStream(path, System.IO.FileMode.Create))
             {
                 encoder.Save(fileStream);
             }
