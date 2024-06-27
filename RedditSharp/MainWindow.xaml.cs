@@ -46,20 +46,26 @@ namespace RedditSharp
             imagesPanel.Children.Clear();
             foreach (var item in entry)
             {
-                Grid grid = new Grid();
-                grid.Margin = new System.Windows.Thickness(10);
-                Image img = new Image();
-                img.Height = 700;
-                img.Stretch = Stretch.Uniform;
-                img.HorizontalAlignment = HorizontalAlignment.Center;
-                img.Source = item.BitmapImage;
+                Grid grid = new()
+                {
+                    Margin = new System.Windows.Thickness(10)
+                };
+                Image img = new()
+                {
+                    Height = 700,
+                    Stretch = Stretch.Uniform,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Source = item.BitmapImage
+                };
                 grid.Children.Add(img);
-                Rectangle rect = new Rectangle();
-                rect.Stroke = Brushes.LightGreen;
-                rect.Width = 316;
-                rect.Height = 701;
-                rect.Fill = Brushes.Transparent;
-                rect.StrokeThickness = 2;
+                Rectangle rect = new()
+                {
+                    Stroke = Brushes.LightGreen,
+                    Width = 316,
+                    Height = 701,
+                    Fill = Brushes.Transparent,
+                    StrokeThickness = 2
+                };
                 grid.Children.Add(rect);
                 imagesPanel.Children.Add(grid);
 
