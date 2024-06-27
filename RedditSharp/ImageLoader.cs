@@ -14,14 +14,14 @@ namespace RedditSharp
 {
     internal class ImageLoader
     {
-        public static async Task<BitmapImage> LoadImageAsync(string imageUrl)
+        public static async Task<(BitmapImage?, byte[]?)> LoadImageAsync(string imageUrl)
         {
             try
             {
-                byte[] imageData = await DownloadImageDataAsync(imageUrl);
+                byte[]? imageData = await DownloadImageDataAsync(imageUrl);
                 if (imageData == null)
                 {
-                    return null;
+                    return (null, null);
                 }
 
                 using (MemoryStream ms = new(imageData))
@@ -32,7 +32,7 @@ namespace RedditSharp
                     bitmap.StreamSource = ms;
                     bitmap.EndInit();
                     bitmap.Freeze();
-                    return bitmap;
+                    return (bitmap, imageData);
                 }
             }
             catch (NotSupportedException)
@@ -42,11 +42,11 @@ namespace RedditSharp
             catch (Exception ex)
             {
                 Debug.WriteLine($"An error occurred while loading the image: {ex.Message} from URL: {imageUrl}");
-                return null;
+                return (null, null);
             }
         }
 
-        private static async Task<byte[]> DownloadImageDataAsync(string imageUrl)
+        private static async Task<byte[]?> DownloadImageDataAsync(string imageUrl)
         {
             using (HttpClient client = new())
             {

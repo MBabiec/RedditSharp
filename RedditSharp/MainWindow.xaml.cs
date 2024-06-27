@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
+using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -17,6 +18,7 @@ using Reddit.Controllers;
 using Reddit.Models;
 using Reddit.Things;
 using RedditSharp.Models;
+using static System.Net.WebRequestMethods;
 
 namespace RedditSharp
 {
@@ -39,30 +41,48 @@ namespace RedditSharp
             reddit = new Redditer();
             reddit.OnImageCountUpdated += ImageCountUpdate;
         }
-        private void SetGuiItems(MyImage entry)
+        private void SetGuiItems(List<MyImage> entry)
         {
-            imageName = entry.Name;
-            currentImage.Source = entry.BitmapImage;
-            subredditDisplay.Text = entry.SubredditName;
-            upvotesDisplay.Text = entry.Upvotes.ToString();
-            dimensionsDisplay.Text = entry.Width.ToString() + "x" + entry.Height.ToString();
+            imagesPanel.Children.Clear();
+            foreach (var item in entry)
+            {
+                Grid grid = new Grid();
+                grid.Margin = new System.Windows.Thickness(10);
+                Image img = new Image();
+                img.Height = 700;
+                img.Stretch = Stretch.Uniform;
+                img.HorizontalAlignment = HorizontalAlignment.Center;
+                img.Source = item.BitmapImage;
+                grid.Children.Add(img);
+                Rectangle rect = new Rectangle();
+                rect.Stroke = Brushes.LightGreen;
+                rect.Width = 316;
+                rect.Height = 701;
+                rect.Fill = Brushes.Transparent;
+                rect.StrokeThickness = 2;
+                grid.Children.Add(rect);
+                imagesPanel.Children.Add(grid);
+
+                imageName = item.Name;
+                subredditDisplay.Text = item.SubredditName;
+                upvotesDisplay.Text = item.Upvotes.ToString();
+                dimensionsDisplay.Text = item.Width.ToString() + "x" + item.Height.ToString();
+            }
         }
         private void Next_Click(object sender, RoutedEventArgs e)
         {
-            MyImage? image = reddit.GetNextImage();
-            if (image != null)
+            List<MyImage>? imageBatch = reddit.GetNextImage();
+            if (imageBatch != null)
             {
-                SetGuiItems(image);
-                imageCounter.Text = (int.Parse(imageCounter.Text) - 1).ToString();
+                SetGuiItems(imageBatch);
             }
         }
         private void Back_Click(object sender, RoutedEventArgs e)
         {
-            MyImage? image = reddit.GetPrevImage();
-            if (image != null)
+            List<MyImage>? imageBatch = reddit.GetPrevImage();
+            if (imageBatch != null)
             {
-                SetGuiItems(image);
-                imageCounter.Text = (int.Parse(imageCounter.Text) + 1).ToString();
+                SetGuiItems(imageBatch);
             }
         }
         private void Download_Click(object sender, RoutedEventArgs e)

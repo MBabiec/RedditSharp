@@ -127,11 +127,11 @@ namespace RedditSharp
             }
         }
 
-        public MyImage? GetNextImage()
+        public List<MyImage>? GetNextImage()
         {
             return imageHandler.GetNextImage();
         }
-        public MyImage? GetPrevImage()
+        public List<MyImage>? GetPrevImage()
         {
             return imageHandler.GetPrevImage();
         }
