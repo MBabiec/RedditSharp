@@ -188,30 +188,27 @@ namespace RedditSharp
         private void Download_Click(object sender, RoutedEventArgs e)
         {
             Object parent = GetParents(sender, 2);
-            //if (parent is StackPanel imgPanel)
+            if (parent is StackPanel entryPanel)
             {
-                if (parent is StackPanel entryPanel)
+                if (entryPanel.Children[0] is Grid grid)
                 {
-                    if (entryPanel.Children[0] is Grid grid)
+                    if (grid.Children[0] is System.Windows.Controls.Image img)
                     {
-                        if (grid.Children[0] is System.Windows.Controls.Image img)
+                        if (grid.Children[1] is Label lbl)
                         {
-                            if (grid.Children[1] is Label lbl)
+                            BitmapEncoder encoder = new PngBitmapEncoder();
+                            encoder.Frames.Add(BitmapFrame.Create((BitmapSource)img.Source));
+                            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY, lbl.Content.ToString());
+                            try
                             {
-                                BitmapEncoder encoder = new PngBitmapEncoder();
-                                encoder.Frames.Add(BitmapFrame.Create((BitmapSource)img.Source));
-                                string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY, lbl.Content.ToString());
-                                try
+                                using (var fileStream = new System.IO.FileStream(path, System.IO.FileMode.CreateNew))
                                 {
-                                    using (var fileStream = new System.IO.FileStream(path, System.IO.FileMode.CreateNew))
-                                    {
-                                        encoder.Save(fileStream);
-                                    }
+                                    encoder.Save(fileStream);
                                 }
-                                catch (Exception ex)
-                                {
-                                    Debug.WriteLine("Image already downloaded " + ex.Message);
-                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine("Image already downloaded " + ex.Message);
                             }
                         }
                     }

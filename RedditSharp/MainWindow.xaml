@@ -31,7 +31,6 @@
                 <TextBox Name="imageCounter" Width="70" Margin="10" IsReadOnly="True" FontSize="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="0"/>
                 <Button x:Name="Back" Content="Back" Width="100" Height="40" Margin="5" Click="Back_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 <Button x:Name="Next" Content="Next" Width="100" Height="40" Margin="5" Click="Next_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                <Button x:Name="Download" Content="Tego chce" Width="140" Height="40" Margin="10" Click="Download_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </StackPanel>
         </StackPanel>
     </Grid>
