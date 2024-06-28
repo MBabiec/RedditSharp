@@ -43,7 +43,13 @@ namespace RedditSharp
                 return null;
             }
             ImageLoaded?.Invoke(images.Count - index - 1);
-            return images[++index];
+            List<MyImage> item = images[++index];
+            if (index > BACK_IMAGES_THRESHOLD)
+            {
+                images.RemoveAt(0);
+                index--;
+            }
+            return item;
         }
         public List<MyImage>? GetPrevImage()
         {
@@ -93,12 +99,12 @@ namespace RedditSharp
                         ulong imgHash = pHash.Hash(tmp);
 
                         int isImageSimilar = IsHashAlreadyPresent(imgHash, currentEntry.Url);
+                        hashes.Add(imgHash);
                         if (isImageSimilar == -1)
                         {
                             List<MyImage> item = [];
                             item.Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, currentEntry.SubredditName, bitmap.PixelWidth, bitmap.PixelHeight, currentEntry.Name, bitmap, imgHash, downloadIndex - 1));
                             images.Add(item);
-                            hashes.Add(imgHash);
                             ImageLoaded?.Invoke(images.Count - index);
                         }
                         else
@@ -108,7 +114,7 @@ namespace RedditSharp
                             {
                                 images[isPresent].Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, currentEntry.SubredditName, bitmap.PixelWidth, bitmap.PixelHeight, currentEntry.Name, bitmap, imgHash, isPresent));
                                 ImageLoaded?.Invoke(images.Count - index); //Technically not necessary
-                                Debug.WriteLine($"Found similar image lol {currentEntry.Url}");
+                                Debug.WriteLine($"Found similar image lol {isPresent} {currentEntry.Url}");
                             }
                             else
                             {
@@ -116,11 +122,6 @@ namespace RedditSharp
                             }
                         }
                     }
-                }
-                if (index > BACK_IMAGES_THRESHOLD)
-                {
-                    images.RemoveAt(0);
-                    index--;
                 }
             }
         }

@@ -34,7 +34,7 @@ namespace RedditSharp
         {
             InitializeComponent();
             string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY);
-            if (!System.IO.Directory.Exists(path) )
+            if (!System.IO.Directory.Exists(path))
             {
                 System.IO.Directory.CreateDirectory(path);
             }
@@ -74,6 +74,7 @@ namespace RedditSharp
                 upvotesDisplay.Text = item.Upvotes.ToString();
                 dimensionsDisplay.Text = item.Width.ToString() + "x" + item.Height.ToString();
             }
+            imgId.Text = entry[0].entryId.ToString();
         }
         private void Next_Click(object sender, RoutedEventArgs e)
         {
@@ -94,16 +95,29 @@ namespace RedditSharp
         private void Download_Click(object sender, RoutedEventArgs e)
         {
             BitmapEncoder encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create((BitmapSource)currentImage.Source));
-            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY, imageName);
-            using (var fileStream = new System.IO.FileStream(path, System.IO.FileMode.Create))
+            if (imagesPanel.Children[0] is Grid grid)
             {
-                encoder.Save(fileStream);
+                if (grid.Children[0] is Image img)
+                {
+                    encoder.Frames.Add(BitmapFrame.Create((BitmapSource)img.Source));
+                    string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY, imageName);
+                    try
+                    {
+                        using (var fileStream = new System.IO.FileStream(path, System.IO.FileMode.CreateNew))
+                        {
+                            encoder.Save(fileStream);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("Image already downloaded " + ex.Message);
+                    }
+                }
             }
         }
         private void ImageCountUpdate(int count)
         {
-            Dispatcher.Invoke(new Action(() => {imageCounter.Text = count.ToString();}));
+            Dispatcher.Invoke(new Action(() => { imageCounter.Text = count.ToString(); }));
         }
     }
 }

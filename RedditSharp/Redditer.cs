@@ -51,7 +51,6 @@ namespace RedditSharp
             foreach (var subreddit in multis.Subreddits)
             {
                 int outdatedPosts = 0;
-                //var posts = client.Subreddit(subreddit.Name).About().Posts.Hot;
                 var posts = client.Models.Listings.Hot(new ListingsHotInput(limit: 100), subreddit.Name).Data.Children;
                 DateTime lastGoodPost = startTime;
                 currentIndex = 0;

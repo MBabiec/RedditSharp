@@ -7,7 +7,9 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="920" Width="1000"
         Background="DimGray"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="Manual"
+        Left="50"
+        Top="50">
     <Grid>
         <StackPanel>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Hidden">
@@ -22,6 +24,7 @@
                 <TextBox x:Name="subredditDisplay" IsReadOnly="True" FontSize="28" Width="300" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
                 <TextBox x:Name="upvotesDisplay" IsReadOnly="True" FontSize="28" Width="100" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
                 <TextBox x:Name="dimensionsDisplay" IsReadOnly="True" FontSize="28" Width="160" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
+                <TextBox x:Name="imgId" IsReadOnly="True" FontSize="28" Width="160" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
                 <TextBox Name="imageCounter" Width="70" Margin="10" IsReadOnly="True" FontSize="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="0"/>
