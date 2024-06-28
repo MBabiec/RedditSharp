@@ -225,14 +225,8 @@ namespace RedditSharp
             {
                 if (Keyboard.Modifiers != ModifierKeys.Control)
                 {
-                    if (e.Delta > 0)
-                    {
-                        scrollViewer.LineLeft();
-                    }
-                    else
-                    {
-                        scrollViewer.LineRight();
-                    }
+                    double scrollAmount = 20;
+                    scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset - e.Delta / 120 * scrollAmount);
                     e.Handled = true;
                 }
             }
