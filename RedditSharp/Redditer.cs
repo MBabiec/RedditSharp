@@ -24,10 +24,6 @@ namespace RedditSharp
         public event ImageCountUpdated OnImageCountUpdated;
         public Redditer()
         {
-            //LinkPost posts = (LinkPost)client.Subreddit(multis.Subreddits[0].Name).About().Posts.Hot[imageCounter];
-            //LoadImageAsync(posts.URL);
-            //LinkPost posts = (LinkPost)client.Subreddit(multis.Subreddits[0].Name).About().Posts.Hot[++imageCounter];
-            //BitmapImage bitmapImage = await ImageLoader.LoadImageAsync(imageUrl);
             imageHandler = new();
             imageHandler.ImageLoaded += ImageLoadedCallback;
             StartWorker();
@@ -80,7 +76,6 @@ namespace RedditSharp
                         }
                         if (linkPost.URL.Contains("gallery"))
                         {
-                            Debug.WriteLine("Found gallery");
                             foreach (var item in linkPost.MediaMetadata)
                             {
                                 int cnt = 0;

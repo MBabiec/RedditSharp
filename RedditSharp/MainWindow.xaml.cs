@@ -136,7 +136,6 @@ namespace RedditSharp
                 dimensionsDisplay.Text = item.Width.ToString() + "x" + item.Height.ToString();
                 AdjustTextBoxWidth(dimensionsDisplay);
                 infoPanel.Children.Add(dimensionsDisplay);
-                //< Button x: Name = "Download" Content = "Tego chce" Width = "140" Height = "40" Margin = "10" Click = "Download_Click" FontSize = "28" HorizontalAlignment = "Center" VerticalAlignment = "Center" />
                 Button download = new()
                 {
                     Width = 140,

@@ -18,12 +18,15 @@ namespace RedditSharp
 {
     internal class ImageHandler
     {
+        // Const parameters
         private const int BACK_IMAGES_THRESHOLD = 7;
         private const int NEXT_IMAGES_THRESHOLD = 35;
         private const double IMAGE_SIMILARITY_THRESHOLD = 90;
+        // Image lists
         private readonly List<List<MyImage>> images = [];
         private readonly List<ImageEntry> entries = [];
         private readonly List<ulong> hashes = [];
+        // Internal
         private int index = -1;
         public delegate void ImageCallback(int count);
         public event ImageCallback? ImageLoaded;
