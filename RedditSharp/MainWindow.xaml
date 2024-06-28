@@ -12,7 +12,7 @@
         Top="50">
     <Grid>
         <StackPanel>
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Hidden">
+            <ScrollViewer HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
                 <StackPanel x:Name="imagesPanel" Orientation="Horizontal">
                     <StackPanel>
                         <Grid Margin="10">

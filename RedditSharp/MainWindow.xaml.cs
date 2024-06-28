@@ -218,6 +218,25 @@ namespace RedditSharp
                 }
             }
         }
+        private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            var scrollViewer = sender as ScrollViewer;
+            if (scrollViewer != null)
+            {
+                if (Keyboard.Modifiers != ModifierKeys.Control)
+                {
+                    if (e.Delta > 0)
+                    {
+                        scrollViewer.LineLeft();
+                    }
+                    else
+                    {
+                        scrollViewer.LineRight();
+                    }
+                    e.Handled = true;
+                }
+            }
+        }
         private void ImageCountUpdate(int count)
         {
             Dispatcher.Invoke(new Action(() => { imageCounter.Text = count.ToString(); }));
