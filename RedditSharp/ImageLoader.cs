@@ -16,33 +16,42 @@ namespace RedditSharp
     {
         public static async Task<(BitmapImage?, byte[]?)> LoadImageAsync(string imageUrl)
         {
-            try
+            if (imageUrl.StartsWith("downloads"))
             {
-                byte[]? imageData = await DownloadImageDataAsync(imageUrl);
-                if (imageData == null)
+                BitmapImage bitmap = LoadImage(imageUrl);
+                byte[] imageData = BitmapImageToByteArray(bitmap);
+                return (bitmap, imageData);
+            }
+            else
+            {
+                try
                 {
+                    byte[]? imageData = await DownloadImageDataAsync(imageUrl);
+                    if (imageData == null)
+                    {
+                        return (null, null);
+                    }
+
+                    using (MemoryStream ms = new(imageData))
+                    {
+                        BitmapImage bitmap = new();
+                        bitmap.BeginInit();
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.StreamSource = ms;
+                        bitmap.EndInit();
+                        bitmap.Freeze();
+                        return (bitmap, imageData);
+                    }
+                }
+                catch (NotSupportedException)
+                {
+                    throw new NotSupportedException("Nie znaleziono odpowiedniego składnika przetwarzania obrazu potrzebnego do zakończenia tej operacji.");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"An error occurred while loading the image: {ex.Message} from URL: {imageUrl}");
                     return (null, null);
                 }
-
-                using (MemoryStream ms = new(imageData))
-                {
-                    BitmapImage bitmap = new();
-                    bitmap.BeginInit();
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmap.StreamSource = ms;
-                    bitmap.EndInit();
-                    bitmap.Freeze();
-                    return (bitmap, imageData);
-                }
-            }
-            catch (NotSupportedException)
-            {
-                throw new NotSupportedException("Nie znaleziono odpowiedniego składnika przetwarzania obrazu potrzebnego do zakończenia tej operacji.");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"An error occurred while loading the image: {ex.Message} from URL: {imageUrl}");
-                return (null, null);
             }
         }
 
@@ -70,6 +79,26 @@ namespace RedditSharp
                     Debug.WriteLine($"Failed to download image at Url {imageUrl} {ex.Message}");
                     return null;
                 }
+            }
+        }
+        private static BitmapImage LoadImage(string imagePath)
+        {
+            BitmapImage bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(imagePath, UriKind.RelativeOrAbsolute);
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
+            bitmap.Freeze(); // Optional: Freeze the bitmap for thread safety and performance
+            return bitmap;
+        }
+        private static byte[] BitmapImageToByteArray(BitmapImage bitmapImage)
+        {
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                BitmapEncoder encoder = new PngBitmapEncoder(); // or any other encoder (JpegBitmapEncoder, etc.)
+                encoder.Frames.Add(BitmapFrame.Create(bitmapImage));
+                encoder.Save(memoryStream);
+                return memoryStream.ToArray();
             }
         }
     }

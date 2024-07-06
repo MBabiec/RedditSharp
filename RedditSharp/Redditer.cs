@@ -26,7 +26,6 @@ namespace RedditSharp
         {
             imageHandler = new();
             imageHandler.ImageLoaded += ImageLoadedCallback;
-            StartWorker();
         }
 
         private void ImageLoadedCallback(int count)
@@ -43,6 +42,18 @@ namespace RedditSharp
             RedditClient client = new(tokens.AppID, tokens.RefreshToken);
             LabeledMulti multis = client.Account.Me.Multis()[0];
             DateTime startTime = DateTime.UtcNow;
+
+            // Uncomment to load from disc instead
+            //string[] files = Directory.GetFiles("downloads");
+
+            //Console.WriteLine("Files in directory:");
+            //foreach (string file in files)
+            //{
+            //    imageHandler.AddImagesFromURL(file, file, "Dupa", 69);
+            //}
+            //imageHandler.NoMorePictures();
+
+            //return;
 
             foreach (var subreddit in multis.Subreddits)
             {
@@ -61,18 +72,22 @@ namespace RedditSharp
                             continue;
                         }
                         TimeSpan timePassed = startTime - linkPost.CreatedUTC;
-                        if (timePassed.TotalDays > 7)
+                        if (timePassed.TotalDays >= 7)
                         {
                             outdatedPosts++;
+                            if (outdatedPosts >= 10)
+                            {
+                                Debug.WriteLine($"Finished {subreddit.Name}");
+                                break;
+                            }
+                            else
+                            {
+                                continue;
+                            }
                         }
                         else
                         {
                             outdatedPosts = 0;
-                        }
-                        if (outdatedPosts >= 10)
-                        {
-                            Debug.WriteLine($"Finished {subreddit.Name}");
-                            break;
                         }
                         if (linkPost.URL.Contains("gallery"))
                         {
@@ -81,7 +96,11 @@ namespace RedditSharp
                                 foreach (var item in linkPost.MediaMetadata)
                                 {
                                     int cnt = 0;
-                                    string imageName = subreddit.Name + "_" + linkPost.Id + System.IO.Path.GetExtension(linkPost.URL) + "_" + cnt++.ToString();
+                                    string imageName = subreddit.Name + "_" + linkPost.Id + System.IO.Path.GetExtension(item.Value.s.u) + "_" + cnt++.ToString();
+                                    if (!imageName.Contains('.'))
+                                    {
+                                        Debug.WriteLine($"Wrong name {imageName} {subreddit.Name} {linkPost.Id} {System.IO.Path.GetExtension(linkPost.URL)}");
+                                    }
                                     imageHandler.AddImagesFromURL(item.Value.s.u, imageName, subreddit.Name, linkPost.Ups);
                                     lastGoodPost = linkPost.CreatedUTC;
                                     lastGoodName = linkPost.Name;
@@ -91,6 +110,10 @@ namespace RedditSharp
                         else
                         {
                             string imageName = subreddit.Name + "_" + linkPost.Id + System.IO.Path.GetExtension(linkPost.URL);
+                            if (!imageName.Contains('.'))
+                            {
+                                Debug.WriteLine($"Wrong name {imageName} {subreddit.Name} {linkPost.Id} {System.IO.Path.GetExtension(linkPost.URL)}");
+                            }
                             imageHandler.AddImagesFromURL(linkPost.URL, imageName, subreddit.Name, linkPost.Ups);
                             lastGoodPost = linkPost.CreatedUTC;
                             lastGoodName = linkPost.Name;
@@ -105,9 +128,10 @@ namespace RedditSharp
                 } while (outdatedPosts < 10);
             }
             Debug.WriteLine("Finished lol");
+            imageHandler.NoMorePictures();
         }
 
-        private void StartWorker()
+        public void Start()
         {
             try
             {

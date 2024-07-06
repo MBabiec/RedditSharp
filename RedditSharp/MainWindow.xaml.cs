@@ -21,6 +21,7 @@ using Reddit.Things;
 using RedditSharp.Models;
 using static System.Net.Mime.MediaTypeNames;
 using static System.Net.WebRequestMethods;
+using System.Windows.Forms;
 
 namespace RedditSharp
 {
@@ -42,6 +43,26 @@ namespace RedditSharp
             }
             reddit = new Redditer();
             reddit.OnImageCountUpdated += ImageCountUpdate;
+
+            string[] files = Directory.GetFiles(DOWNLOAD_DIRECTORY);
+            if (files != null && files.Length > 0)
+            {
+                MessageBoxResult result = MessageBox.Show("Files present in donwload directory. Would you like to wipe it?", "Wipe downloads", MessageBoxButton.YesNo);
+
+                // Handle the user's response
+                switch (result)
+                {
+                    case MessageBoxResult.Yes:
+                        foreach (string file in files)
+                        {
+                            System.IO.File.Delete(file);
+                        }
+                        break;
+                    case MessageBoxResult.No:
+                        break;
+                }
+            }
+            reddit.Start();
         }
         private void AdjustTextBoxWidth(TextBox textBox)
         {
