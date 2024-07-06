@@ -19,7 +19,7 @@ namespace RedditSharp
 {
     internal class Redditer
     {
-        private static ImageHandler imageHandler;
+        private ImageHandler imageHandler;
         public delegate void ImageCountUpdated(int count);
         public event ImageCountUpdated OnImageCountUpdated;
         public Redditer()
@@ -34,7 +34,7 @@ namespace RedditSharp
             OnImageCountUpdated?.Invoke(count);
         }
 
-        private static async Task Worker()
+        private async Task Worker()
         {
             int currentIndex;
             string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "tokens.json");
@@ -76,15 +76,17 @@ namespace RedditSharp
                         }
                         if (linkPost.URL.Contains("gallery"))
                         {
-                            foreach (var item in linkPost.MediaMetadata)
+                            if (linkPost.MediaMetadata is not null)
                             {
-                                int cnt = 0;
-                                string imageName = subreddit.Name + "_" + linkPost.Id + System.IO.Path.GetExtension(linkPost.URL) + "_" + cnt++.ToString();
-                                imageHandler.AddImagesFromURL(item.Value.s.u, imageName, subreddit.Name, linkPost.Ups);
-                                lastGoodPost = linkPost.CreatedUTC;
-                                lastGoodName = linkPost.Name;
+                                foreach (var item in linkPost.MediaMetadata)
+                                {
+                                    int cnt = 0;
+                                    string imageName = subreddit.Name + "_" + linkPost.Id + System.IO.Path.GetExtension(linkPost.URL) + "_" + cnt++.ToString();
+                                    imageHandler.AddImagesFromURL(item.Value.s.u, imageName, subreddit.Name, linkPost.Ups);
+                                    lastGoodPost = linkPost.CreatedUTC;
+                                    lastGoodName = linkPost.Name;
+                                }
                             }
-                            var dupa = linkPost;
                         }
                         else
                         {
