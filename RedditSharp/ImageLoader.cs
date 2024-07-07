@@ -14,22 +14,22 @@ namespace RedditSharp
 {
     internal class ImageLoader
     {
-        public static async Task<(BitmapImage?, byte[]?)> LoadImageAsync(string imageUrl)
+        public static async Task<(BitmapImage?, byte[]?, string? extension)> LoadImageAsync(string imageUrl)
         {
             if (imageUrl.StartsWith("downloads"))
             {
                 BitmapImage bitmap = LoadImage(imageUrl);
                 byte[] imageData = BitmapImageToByteArray(bitmap);
-                return (bitmap, imageData);
+                return (bitmap, imageData, System.IO.Path.GetExtension(imageUrl));
             }
             else
             {
                 try
                 {
-                    byte[]? imageData = await DownloadImageDataAsync(imageUrl);
+                    (byte[]? imageData, string? extension) = await DownloadImageDataAsync(imageUrl);
                     if (imageData == null)
                     {
-                        return (null, null);
+                        return (null, null, null);
                     }
 
                     using (MemoryStream ms = new(imageData))
@@ -40,7 +40,7 @@ namespace RedditSharp
                         bitmap.StreamSource = ms;
                         bitmap.EndInit();
                         bitmap.Freeze();
-                        return (bitmap, imageData);
+                        return (bitmap, imageData, extension);
                     }
                 }
                 catch (NotSupportedException)
@@ -50,12 +50,12 @@ namespace RedditSharp
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"An error occurred while loading the image: {ex.Message} from URL: {imageUrl}");
-                    return (null, null);
+                    return (null, null, null);
                 }
             }
         }
 
-        private static async Task<byte[]?> DownloadImageDataAsync(string imageUrl)
+        private static async Task<(byte[]?, string? extension)> DownloadImageDataAsync(string imageUrl)
         {
             using (HttpClient client = new())
             {
@@ -67,17 +67,18 @@ namespace RedditSharp
                     HttpWebResponse response = (HttpWebResponse)request.GetResponse();
                     if (response.ContentType.Contains("image"))
                     {
-                        return await client.GetByteArrayAsync(imageUrl);
+                        string dupa = response.ContentType[(response.ContentType.LastIndexOf('/') + 1)..];
+                        return (await client.GetByteArrayAsync(imageUrl), response.ContentType[(response.ContentType.LastIndexOf('/') + 1)..]);
                     }
                     else
                     {
-                        return null;
+                        return (null, null);
                     }
                 }
                 catch (WebException ex)
                 {
                     Debug.WriteLine($"Failed to download image at Url {imageUrl} {ex.Message}");
-                    return null;
+                    return (null, null);
                 }
             }
         }

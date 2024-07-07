@@ -32,14 +32,14 @@ namespace RedditSharp
         public delegate void ImageCallback(int count);
         public event ImageCallback? ImageLoaded;
         private bool finished = false;
-        public void AddImagesFromURL(string url, string name, string subredditName, int upvotes)
+        public void AddImagesFromURL(string url, string id, string subredditName, int upvotes)
         {
-            AddNewImage(url, name, subredditName, upvotes);
+            AddNewImage(url, id, subredditName, upvotes);
         }
 
-        private void AddNewImage(string url, string name, string subredditName, int upvotes)
+        private void AddNewImage(string url, string id, string subredditName, int upvotes)
         {
-            entries.Add(new ImageEntry(url, upvotes, subredditName, 0, 0, name));
+            entries.Add(new ImageEntry(url, upvotes, subredditName, 0, 0, id));
         }
         public List<MyImage>? GetNextImage()
         {
@@ -81,7 +81,7 @@ namespace RedditSharp
         {
             for (int i = 0; i < images.Count; ++i)
             {
-                if (images[i][0].entryId == id)
+                if (images[i][0].EntryId == id)
                 {
                     return i;
                 }
@@ -98,7 +98,8 @@ namespace RedditSharp
                     try
                     {
                         var currentEntry = entries[downloadIndex++];
-                        (BitmapImage? bitmap, byte[]? bytes) = await ImageLoader.LoadImageAsync(currentEntry.Url);
+                        (BitmapImage? bitmap, byte[]? bytes, string? extension) = await ImageLoader.LoadImageAsync(currentEntry.Url);
+                        string actualName = currentEntry.SubredditName + "_" + currentEntry.Id + "." + extension;
                         if (bitmap != null && bytes != null)
                         {
                             PerceptualHash pHash = new();
@@ -110,7 +111,7 @@ namespace RedditSharp
                             if (isImageSimilar == -1)
                             {
                                 List<MyImage> item = [];
-                                item.Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, currentEntry.SubredditName, bitmap.PixelWidth, bitmap.PixelHeight, currentEntry.Name, bitmap, imgHash, downloadIndex - 1));
+                                item.Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, currentEntry.SubredditName, bitmap.PixelWidth, bitmap.PixelHeight, currentEntry.Id, bitmap, imgHash, downloadIndex - 1, actualName));
                                 images.Add(item);
                                 ImageLoaded?.Invoke(images.Count - index);
                             }
@@ -119,7 +120,7 @@ namespace RedditSharp
                                 int isPresent = IsMatchingImageStillPresent(isImageSimilar);
                                 if (isPresent != -1)
                                 {
-                                    images[isPresent].Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, currentEntry.SubredditName, bitmap.PixelWidth, bitmap.PixelHeight, currentEntry.Name, bitmap, imgHash, isPresent));
+                                    images[isPresent].Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, currentEntry.SubredditName, bitmap.PixelWidth, bitmap.PixelHeight, currentEntry.Id, bitmap, imgHash, isPresent, actualName));
                                     ImageLoaded?.Invoke(images.Count - index); //Technically not necessary
                                     Debug.WriteLine($"Found similar image lol {isPresent} {currentEntry.Url}");
                                 }

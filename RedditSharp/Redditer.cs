@@ -96,12 +96,7 @@ namespace RedditSharp
                                 foreach (var item in linkPost.MediaMetadata)
                                 {
                                     int cnt = 0;
-                                    string imageName = subreddit.Name + "_" + linkPost.Id + System.IO.Path.GetExtension(item.Value.s.u) + "_" + cnt++.ToString();
-                                    if (!imageName.Contains('.'))
-                                    {
-                                        Debug.WriteLine($"Wrong name {imageName} {subreddit.Name} {linkPost.Id} {System.IO.Path.GetExtension(linkPost.URL)}");
-                                    }
-                                    imageHandler.AddImagesFromURL(item.Value.s.u, imageName, subreddit.Name, linkPost.Ups);
+                                    imageHandler.AddImagesFromURL(item.Value.s.u, linkPost.Id + cnt++.ToString(), subreddit.Name, linkPost.Ups);
                                     lastGoodPost = linkPost.CreatedUTC;
                                     lastGoodName = linkPost.Name;
                                 }
@@ -109,12 +104,7 @@ namespace RedditSharp
                         }
                         else
                         {
-                            string imageName = subreddit.Name + "_" + linkPost.Id + System.IO.Path.GetExtension(linkPost.URL);
-                            if (!imageName.Contains('.'))
-                            {
-                                Debug.WriteLine($"Wrong name {imageName} {subreddit.Name} {linkPost.Id} {System.IO.Path.GetExtension(linkPost.URL)}");
-                            }
-                            imageHandler.AddImagesFromURL(linkPost.URL, imageName, subreddit.Name, linkPost.Ups);
+                            imageHandler.AddImagesFromURL(linkPost.URL, linkPost.Id, subreddit.Name, linkPost.Ups);
                             lastGoodPost = linkPost.CreatedUTC;
                             lastGoodName = linkPost.Name;
                         }
