@@ -1,19 +1,9 @@
-﻿using CoenM.ImageHash.HashAlgorithms;
+﻿using CoenM.ImageHash;
+using CoenM.ImageHash.HashAlgorithms;
 using RedditSharp.Models;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Security.Cryptography;
-using System.Security.Policy;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media.Imaging;
-using System.Drawing;
-using CoenM.ImageHash;
 using System.Windows;
+using System.Windows.Media.Imaging;
 
 namespace RedditSharp
 {
@@ -22,7 +12,7 @@ namespace RedditSharp
         // Const parameters
         private const int BACK_IMAGES_THRESHOLD = 7;
         private const int NEXT_IMAGES_THRESHOLD = 35;
-        private const double IMAGE_SIMILARITY_THRESHOLD = 90;
+        private const double IMAGE_SIMILARITY_THRESHOLD = 85;
         // Image lists
         private readonly List<List<MyImage>> images = [];
         private readonly List<ImageEntry> entries = [];
@@ -65,7 +55,7 @@ namespace RedditSharp
             }
             return null;
         }
-        private int IsHashAlreadyPresent(ulong newHash, string url)
+        private int IsHashAlreadyPresent(ulong newHash)
         {
             for (int i = 0; i < hashes.Count; ++i)
             {
@@ -81,9 +71,12 @@ namespace RedditSharp
         {
             for (int i = 0; i < images.Count; ++i)
             {
-                if (images[i][0].EntryId == id)
+                for (int j = 0; j < images[i].Count; ++j)
                 {
-                    return i;
+                    if (images[i][j].EntryId == id)
+                    {
+                        return i;
+                    }
                 }
             }
             return -1;
@@ -106,10 +99,10 @@ namespace RedditSharp
                             var tmp = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(bytes);
                             ulong imgHash = pHash.Hash(tmp);
 
-                            int isImageSimilar = IsHashAlreadyPresent(imgHash, currentEntry.Url);
-                            hashes.Add(imgHash);
+                            int isImageSimilar = IsHashAlreadyPresent(imgHash);
                             if (isImageSimilar == -1)
                             {
+                                hashes.Add(imgHash);
                                 List<MyImage> item = [];
                                 item.Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, currentEntry.SubredditName, bitmap.PixelWidth, bitmap.PixelHeight, currentEntry.Id, bitmap, imgHash, downloadIndex - 1, actualName));
                                 images.Add(item);
