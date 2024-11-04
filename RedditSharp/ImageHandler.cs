@@ -16,7 +16,7 @@ namespace RedditSharp
         // Image lists
         private readonly List<List<MyImage>> images = [];
         private readonly List<ImageEntry> entries = [];
-        private readonly List<ulong> hashes = [];
+        private readonly List<(ulong hash, int id)> hashes = [];
         // Internal
         private int index = -1;
         public delegate void ImageCallback(int count);
@@ -59,10 +59,10 @@ namespace RedditSharp
         {
             for (int i = 0; i < hashes.Count; ++i)
             {
-                double simil = CompareHash.Similarity(newHash, hashes[i]);
+                double simil = CompareHash.Similarity(newHash, hashes[i].hash);
                 if (simil > IMAGE_SIMILARITY_THRESHOLD)
                 {
-                    return i;
+                    return hashes[i].id;
                 }
             }
             return -1;
@@ -102,7 +102,7 @@ namespace RedditSharp
                             int isImageSimilar = IsHashAlreadyPresent(imgHash);
                             if (isImageSimilar == -1)
                             {
-                                hashes.Add(imgHash);
+                                hashes.Add((imgHash, downloadIndex - 1));
                                 List<MyImage> item = [];
                                 item.Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, currentEntry.SubredditName, bitmap.PixelWidth, bitmap.PixelHeight, currentEntry.Id, bitmap, imgHash, downloadIndex - 1, actualName));
                                 images.Add(item);
