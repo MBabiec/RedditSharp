@@ -235,6 +235,18 @@ namespace RedditSharp
                 }
             }
         }
+        private void OpenFolder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string folder = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY);
+                Process.Start("explorer.exe", folder);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"{ex.Message}");
+            }
+        }
         private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
             var scrollViewer = sender as ScrollViewer;
