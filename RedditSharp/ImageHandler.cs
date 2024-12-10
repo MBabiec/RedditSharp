@@ -16,6 +16,7 @@ namespace RedditSharp
         // Image lists
         private readonly List<List<MyImage>> images = [];
         private readonly List<ImageEntry> entries = [];
+        private readonly List<MyImage> duplicates = [];
         private readonly List<(ulong hash, int id)> hashes = [];
         // Internal
         private int index = -1;
@@ -86,11 +87,16 @@ namespace RedditSharp
             int downloadIndex = 0;
             while (true)
             {
-                if (images.Count < NEXT_IMAGES_THRESHOLD && entries.Count > (index == -1 ? 0 : index))
+                if (images.Count < NEXT_IMAGES_THRESHOLD && entries.Count > (index == -1 ? 0 : index) && downloadIndex < entries.Count)
                 {
                     try
                     {
                         var currentEntry = entries[downloadIndex++];
+                        if (currentEntry == null)
+                        {
+                            downloadIndex--;
+                            continue;
+                        }
                         (BitmapImage? bitmap, byte[]? bytes, string? extension) = await ImageLoader.LoadImageAsync(currentEntry.Url);
                         string actualName = currentEntry.SubredditName + "_" + currentEntry.Id + "." + extension;
                         if (bitmap != null && bytes != null)
@@ -120,6 +126,7 @@ namespace RedditSharp
                                 else
                                 {
                                     Debug.WriteLine($"Matching image no longer present {isImageSimilar} {currentEntry.Url}");
+                                    duplicates.Add(new MyImage(currentEntry.Url, currentEntry.Upvotes, entries[isImageSimilar].Url, bitmap.PixelWidth, bitmap.PixelHeight, currentEntry.Id, bitmap, imgHash, isPresent, actualName));
                                 }
                             }
                         }
@@ -129,6 +136,10 @@ namespace RedditSharp
                         if (finished && entries.Count < downloadIndex)
                         {
                             MessageBox.Show("Finished");
+                            foreach (var item in duplicates)
+                            {
+                                Debug.WriteLine($"{item.Url} | {item.SubredditName}");
+                            }
                             return;
                         }
                         else
