@@ -22,9 +22,9 @@ namespace RedditSharp
         private ImageHandler imageHandler;
         public delegate void ImageCountUpdated(int count);
         public event ImageCountUpdated OnImageCountUpdated;
-        public Redditer()
+        public Redditer(string downloadPath)
         {
-            imageHandler = new();
+            imageHandler = new(downloadPath);
             imageHandler.ImageLoaded += ImageLoadedCallback;
         }
 

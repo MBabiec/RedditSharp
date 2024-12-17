@@ -1,7 +1,9 @@
 ﻿using CoenM.ImageHash;
 using CoenM.ImageHash.HashAlgorithms;
 using RedditSharp.Models;
+using System.CodeDom;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Media.Imaging;
 
@@ -13,6 +15,7 @@ namespace RedditSharp
         private const int BACK_IMAGES_THRESHOLD = 7;
         private const int NEXT_IMAGES_THRESHOLD = 35;
         private const double IMAGE_SIMILARITY_THRESHOLD = 90;
+        private string downPath = "";
         // Image lists
         private readonly List<List<MyImage>> images = [];
         private readonly List<ImageEntry> entries = [];
@@ -136,9 +139,14 @@ namespace RedditSharp
                         if (finished && entries.Count < downloadIndex)
                         {
                             MessageBox.Show("Finished");
-                            foreach (var item in duplicates)
+                            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), downPath, "dupes.txt");
+                            using (StreamWriter writer = new(path))
                             {
-                                Debug.WriteLine($"{item.Url} | {item.SubredditName}");
+                                foreach (var item in duplicates)
+                                {
+                                    writer.WriteLine($"{item.Url} | {item.SubredditName}");
+                                    Debug.WriteLine($"{item.Url} | {item.SubredditName}");
+                                }
                             }
                             return;
                         }
@@ -156,10 +164,11 @@ namespace RedditSharp
             finished = true;
         }
 
-        public ImageHandler()
+        public ImageHandler(string downloadPath)
         {
             try
             {
+                downPath = downloadPath;
                 Task tt = new Task(async () =>
                 {
                     await Worker();

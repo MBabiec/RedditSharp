@@ -41,7 +41,7 @@ namespace RedditSharp
             {
                 System.IO.Directory.CreateDirectory(path);
             }
-            reddit = new Redditer();
+            reddit = new Redditer(DOWNLOAD_DIRECTORY);
             reddit.OnImageCountUpdated += ImageCountUpdate;
 
             string[] files = Directory.GetFiles(DOWNLOAD_DIRECTORY);
