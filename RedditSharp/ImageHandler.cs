@@ -136,25 +136,22 @@ namespace RedditSharp
                     }
                     catch (Exception ex)
                     {
-                        if (finished && entries.Count < downloadIndex)
+                        Debug.WriteLine($"Unhandled exception {ex.Message}");
+                    }
+                }
+                else if (finished && downloadIndex == entries.Count)
+                {
+                    MessageBox.Show("Finished");
+                    string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), downPath, "dupes.txt");
+                    using (StreamWriter writer = new(path))
+                    {
+                        foreach (var item in duplicates)
                         {
-                            MessageBox.Show("Finished");
-                            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), downPath, "dupes.txt");
-                            using (StreamWriter writer = new(path))
-                            {
-                                foreach (var item in duplicates)
-                                {
-                                    writer.WriteLine($"{item.Url} | {item.SubredditName}");
-                                    Debug.WriteLine($"{item.Url} | {item.SubredditName}");
-                                }
-                            }
-                            return;
-                        }
-                        else
-                        {
-                            Debug.WriteLine($"Unhandled exception {ex.Message}");
+                            writer.WriteLine($"{item.Url} | {item.SubredditName}");
+                            Debug.WriteLine($"{item.Url} | {item.SubredditName}");
                         }
                     }
+                    return;
                 }
             }
         }
