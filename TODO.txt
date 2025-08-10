@@ -1,0 +1,5 @@
+Duże obrazki trwają w chuj długo
+Upload do google drive - mało ważne
+Może zwiększyć threshold? były faktycznie podobne ale inne obrazki wykryte jako te same
+Może jakiś crash dump i wznawianie???
+taki sam obrazek jaki już był pokazał sie jako nowy jak było daleko po wystąpieniu pierwszego
