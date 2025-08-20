@@ -142,14 +142,9 @@ namespace RedditSharp
                 else if (finished && downloadIndex == entries.Count)
                 {
                     MessageBox.Show("Finished");
-                    string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), downPath, "dupes.txt");
-                    using (StreamWriter writer = new(path))
+                    foreach (var item in duplicates)
                     {
-                        foreach (var item in duplicates)
-                        {
-                            writer.WriteLine($"{item.Url} | {item.SubredditName}");
-                            Debug.WriteLine($"{item.Url} | {item.SubredditName}");
-                        }
+                        Debug.WriteLine($"{item.Url} | {item.SubredditName}");
                     }
                     return;
                 }
