@@ -50,6 +50,7 @@ namespace RedditSharp
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"An error occurred while loading the image: {ex.Message} from URL: {imageUrl}");
+                    Debug.WriteLine(ex.InnerException?.Message);
                     return (null, null, null);
                 }
             }
@@ -62,17 +63,28 @@ namespace RedditSharp
                 client.Timeout = TimeSpan.FromMinutes(10);
                 try
                 {
-                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(imageUrl);
-                    request.Method = "HEAD";
-                    HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                    if (response.ContentType.Contains("image"))
+                    if (imageUrl.Contains("catbox"))
                     {
-                        string dupa = response.ContentType[(response.ContentType.LastIndexOf('/') + 1)..];
-                        return (await client.GetByteArrayAsync(imageUrl), response.ContentType[(response.ContentType.LastIndexOf('/') + 1)..]);
+                        var request = new HttpRequestMessage(HttpMethod.Get, imageUrl);
+                        request.Headers.UserAgent.ParseAdd("Dotnet");
+                        request.Headers.Host = request.RequestUri?.Host;
+                        using HttpResponseMessage response = await client.SendAsync(request);
+                        return (await response.Content.ReadAsByteArrayAsync(), response.Content.Headers.ContentType?.MediaType);
                     }
                     else
                     {
-                        return (null, null);
+                        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(imageUrl);
+                        request.Method = "HEAD";
+                        HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                        if (response.ContentType.Contains("image"))
+                        {
+                            string dupa = response.ContentType[(response.ContentType.LastIndexOf('/') + 1)..];
+                            return (await client.GetByteArrayAsync(imageUrl), response.ContentType[(response.ContentType.LastIndexOf('/') + 1)..]);
+                        }
+                        else
+                        {
+                            return (null, null);
+                        }
                     }
                 }
                 catch (WebException ex)
