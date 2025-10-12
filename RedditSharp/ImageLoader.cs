@@ -69,7 +69,8 @@ namespace RedditSharp
                         request.Headers.UserAgent.ParseAdd("Dotnet");
                         request.Headers.Host = request.RequestUri?.Host;
                         using HttpResponseMessage response = await client.SendAsync(request);
-                        return (await response.Content.ReadAsByteArrayAsync(), response.Content.Headers.ContentType?.MediaType);
+                        var slashIndex = response.Content.Headers.ContentType!.MediaType!.LastIndexOf('/') + 1;
+                        return (await response.Content.ReadAsByteArrayAsync(), response.Content.Headers.ContentType?.MediaType[slashIndex..]);
                     }
                     else
                     {

@@ -93,12 +93,19 @@ namespace RedditSharp
                         {
                             if (linkPost.MediaMetadata is not null)
                             {
+                                int cnt = 0;
                                 foreach (var item in linkPost.MediaMetadata)
                                 {
-                                    int cnt = 0;
-                                    imageHandler.AddImagesFromURL(item.Value.s.u, linkPost.Id + cnt++.ToString(), subreddit.Name, linkPost.Ups);
-                                    lastGoodPost = linkPost.CreatedUTC;
-                                    lastGoodName = linkPost.Name;
+                                    try
+                                    {
+                                        imageHandler.AddImagesFromURL(item.Value.s.u, linkPost.Id + cnt++.ToString(), subreddit.Name, linkPost.Ups);
+                                        lastGoodPost = linkPost.CreatedUTC;
+                                        lastGoodName = linkPost.Name;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Debug.WriteLine($"Failed to get gallery {linkPost.URL} + {ex.Message}");
+                                    }
                                 }
                             }
                         }
