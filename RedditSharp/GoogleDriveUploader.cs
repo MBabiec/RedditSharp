@@ -63,6 +63,8 @@ namespace RedditSharp
             }
 
             string[] files = Directory.GetFiles(localFolderPath);
+            Array.Sort(files, StringComparer.OrdinalIgnoreCase);
+            Array.Reverse(files);
             if (files.Length == 0)
             {
                 return new UploadResult(0, 0, 0);
