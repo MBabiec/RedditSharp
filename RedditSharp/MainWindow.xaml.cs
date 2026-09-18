@@ -203,45 +203,6 @@ namespace RedditSharp
             };
             RenderOptions.SetBitmapScalingMode(screenFill, BitmapScalingMode.HighQuality);
             inner.Children.Add(screenFill);
-            inner.Children.Add(new Border
-            {
-                Width = 62,
-                Height = 15,
-                CornerRadius = new CornerRadius(8),
-                Background = new SolidColorBrush(Color.FromArgb(0xD9, 0x00, 0x00, 0x00)),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 10, 0, 0)
-            });
-
-            var tag = new Border
-            {
-                CornerRadius = new CornerRadius(10),
-                Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x00, 0x00, 0x00)),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 0, 0, 10),
-                Padding = new Thickness(9, 4, 10, 4)
-            };
-            var tagRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-            tagRow.Children.Add(new Ellipse
-            {
-                Width = 6,
-                Height = 6,
-                Fill = success,
-                VerticalAlignment = VerticalAlignment.Center
-            });
-            tagRow.Children.Add(new TextBlock
-            {
-                Text = "9:20 wallpaper",
-                FontSize = 10,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = Brushes.White,
-                Margin = new Thickness(6, 0, 0, 0),
-                VerticalAlignment = VerticalAlignment.Center
-            });
-            tag.Child = tagRow;
-            inner.Children.Add(tag);
 
             phoneFrame.Child = inner;
             overlay.Children.Add(phoneFrame);
@@ -293,7 +254,7 @@ namespace RedditSharp
                     BorderBrush = cardBorder,
                     BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(12),
-                    Padding = new Thickness(8),
+                    Padding = new Thickness(5),
                     Margin = new Thickness(0, 0, 12, 0),
                     Width = 720,
                     VerticalAlignment = VerticalAlignment.Center,
@@ -319,7 +280,7 @@ namespace RedditSharp
                 // Image viewport with phone-wallpaper crop preview.
                 var imageFrame = new Border
                 {
-                    Height = 680,
+                    Height = 720,
                     CornerRadius = new CornerRadius(8),
                     Background = new SolidColorBrush(Color.FromRgb(0x0A, 0x0A, 0x0C)),
                     BorderBrush = cardBorder,
@@ -333,7 +294,7 @@ namespace RedditSharp
                     Stretch = Stretch.Uniform,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(1),
+                    Margin = new Thickness(6),
                     Source = item.BitmapImage,
                 };
                 RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
