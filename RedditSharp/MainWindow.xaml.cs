@@ -1,27 +1,13 @@
 ﻿using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
-using Newtonsoft.Json;
-using Reddit;
-using Reddit.Controllers;
-using Reddit.Models;
-using Reddit.Things;
 using RedditSharp.Models;
-using static System.Net.Mime.MediaTypeNames;
-using static System.Net.WebRequestMethods;
-using System.Windows.Forms;
 
 namespace RedditSharp
 {
@@ -32,7 +18,9 @@ namespace RedditSharp
     {
         private const string DOWNLOAD_DIRECTORY = "downloads";
         private readonly Redditer reddit;
-        private string imageName;
+        private bool showPhonePreview = true;
+        private const double PhoneAspect = 9.0 / 20.0;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -44,10 +32,13 @@ namespace RedditSharp
             reddit = new Redditer(DOWNLOAD_DIRECTORY);
             reddit.OnImageCountUpdated += ImageCountUpdate;
 
+            // Arrow-key navigation for a snappier feel.
+            KeyDown += MainWindow_KeyDown;
+
             string[] files = Directory.GetFiles(DOWNLOAD_DIRECTORY);
             if (files != null && files.Length > 0)
             {
-                MessageBoxResult result = MessageBox.Show("Files present in donwload directory. Would you like to wipe it?", "Wipe downloads", MessageBoxButton.YesNo);
+                MessageBoxResult result = MessageBox.Show("Files present in download directory. Would you like to wipe it?", "Wipe downloads", MessageBoxButton.YesNo);
 
                 // Handle the user's response
                 switch (result)
@@ -64,115 +55,415 @@ namespace RedditSharp
             }
             reddit.Start();
         }
-        private void AdjustTextBoxWidth(TextBox textBox)
-        {
-            var formattedText = new FormattedText(
-                textBox.Text,
-                System.Globalization.CultureInfo.CurrentCulture,
-                FlowDirection.LeftToRight,
-                new Typeface(textBox.FontFamily, textBox.FontStyle, textBox.FontWeight, textBox.FontStretch),
-                textBox.FontSize,
-                Brushes.Black,
-                new NumberSubstitution(),
-                1);
 
-            // Adding padding for better appearance
-            double padding = textBox.Padding.Left + textBox.Padding.Right + 10;
-            textBox.Width = formattedText.Width + padding;
+        private void MainWindow_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Right)
+            {
+                Next_Click(sender, e);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Left)
+            {
+                Back_Click(sender, e);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.P)
+            {
+                if (PhonePreviewToggle != null)
+                {
+                    PhonePreviewToggle.IsChecked = !PhonePreviewToggle.IsChecked;
+                }
+                e.Handled = true;
+            }
+        }
+
+        private void PhonePreviewToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Primitives.ToggleButton toggle)
+            {
+                showPhonePreview = toggle.IsChecked == true;
+            }
+            else if (PhonePreviewToggle != null)
+            {
+                showPhonePreview = PhonePreviewToggle.IsChecked == true;
+            }
+            // During InitializeComponent the toggle fires before imagesPanel exists.
+            if (imagesPanel == null)
+            {
+                return;
+            }
+            ApplyPhonePreviewVisibility();
+        }
+
+        private void ApplyPhonePreviewVisibility()
+        {
+            if (imagesPanel == null)
+            {
+                return;
+            }
+            var visibility = showPhonePreview ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var child in imagesPanel.Children)
+            {
+                var overlay = FindPhoneOverlay(child as DependencyObject);
+                if (overlay != null)
+                {
+                    overlay.Visibility = visibility;
+                }
+            }
+        }
+
+        private static Grid? FindPhoneOverlay(DependencyObject? root)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+            int count = VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(root, i);
+                if (child is Grid grid && grid.Tag as string == "PhoneOverlay")
+                {
+                    return grid;
+                }
+                var found = FindPhoneOverlay(child);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Builds a modern phone-wallpaper crop preview: a rounded phone frame
+        /// (9:20) with dimmed surplus on the sides, a dynamic-island notch
+        /// and a small "wallpaper" tag — the sleek successor to the old
+        /// flat green rectangle. The phone screen shows a full-bleed
+        /// center-crop (UniformToFill) so there are no black bars.
+        /// </summary>
+        private static Grid BuildPhoneOverlay(Brush success, ImageSource? source)
+        {
+            var overlay = new Grid
+            {
+                Tag = "PhoneOverlay",
+                IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+            overlay.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            overlay.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            overlay.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var dimBrush = new SolidColorBrush(Color.FromArgb(0xAA, 0x00, 0x00, 0x00));
+            var dimLeft = new Border { Background = dimBrush };
+            Grid.SetColumn(dimLeft, 0);
+            var dimRight = new Border { Background = dimBrush };
+            Grid.SetColumn(dimRight, 2);
+            overlay.Children.Add(dimLeft);
+            overlay.Children.Add(dimRight);
+
+            var phoneFrame = new Border
+            {
+                BorderBrush = success,
+                BorderThickness = new Thickness(2),
+                CornerRadius = new CornerRadius(26),
+                Background = Brushes.Transparent,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                SnapsToDevicePixels = true,
+                Effect = new DropShadowEffect
+                {
+                    Color = Color.FromRgb(0x22, 0xC5, 0x5E),
+                    Opacity = 0.45,
+                    BlurRadius = 12,
+                    ShadowDepth = 0
+                }
+            };
+            Grid.SetColumn(phoneFrame, 1);
+
+            var inner = new Grid();
+            // Full-bleed wallpaper preview: fills the whole phone screen
+            // with an explicitly centered crop, so no letterbox bars
+            // at top/bottom. ImageBrush (unlike Image) exposes
+            // AlignmentX/AlignmentY, guaranteeing dead-center.
+            var screenFill = new Border
+            {
+                Background = new ImageBrush
+                {
+                    ImageSource = source,
+                    Stretch = Stretch.UniformToFill,
+                    AlignmentX = AlignmentX.Center,
+                    AlignmentY = AlignmentY.Center
+                },
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                IsHitTestVisible = false
+            };
+            RenderOptions.SetBitmapScalingMode(screenFill, BitmapScalingMode.HighQuality);
+            inner.Children.Add(screenFill);
+            inner.Children.Add(new Border
+            {
+                Width = 62,
+                Height = 15,
+                CornerRadius = new CornerRadius(8),
+                Background = new SolidColorBrush(Color.FromArgb(0xD9, 0x00, 0x00, 0x00)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 10, 0, 0)
+            });
+
+            var tag = new Border
+            {
+                CornerRadius = new CornerRadius(10),
+                Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x00, 0x00, 0x00)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = new Thickness(0, 0, 0, 10),
+                Padding = new Thickness(9, 4, 10, 4)
+            };
+            var tagRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            tagRow.Children.Add(new Ellipse
+            {
+                Width = 6,
+                Height = 6,
+                Fill = success,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            tagRow.Children.Add(new TextBlock
+            {
+                Text = "9:20 wallpaper",
+                FontSize = 10,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = Brushes.White,
+                Margin = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            tag.Child = tagRow;
+            inner.Children.Add(tag);
+
+            phoneFrame.Child = inner;
+            overlay.Children.Add(phoneFrame);
+
+            // Keep the 9:20 aspect fitted to the viewport.
+            overlay.SizeChanged += (s, e) =>
+            {
+                double availW = overlay.ActualWidth;
+                double availH = overlay.ActualHeight;
+                if (availW <= 0 || availH <= 0)
+                {
+                    return;
+                }
+                double h = availH - 4;
+                double w = h * PhoneAspect;
+                if (w > availW - 4)
+                {
+                    w = availW - 4;
+                    h = w / PhoneAspect;
+                }
+                phoneFrame.Width = w;
+                phoneFrame.Height = h;
+                // Clip the fill image to the rounded phone shape
+                // (Border alone does not clip children to its corner radius).
+                phoneFrame.Clip = new RectangleGeometry(new Rect(0, 0, w, h), 24, 24);
+            };
+
+            return overlay;
         }
 
         private void SetGuiItems(List<MyImage> entry)
         {
+            var cardBg = (Brush)FindResource("CardBgBrush");
+            var cardBorder = (Brush)FindResource("CardBorderBrush");
+            var fieldBg = (Brush)FindResource("FieldBgBrush");
+            var accent = (Brush)FindResource("AccentBrush");
+            var accentSoft = (Brush)FindResource("AccentSoftBrush");
+            var textPrimary = (Brush)FindResource("TextPrimaryBrush");
+            var textMuted = (Brush)FindResource("TextMutedBrush");
+            var success = (Brush)FindResource("SuccessBrush");
+            var primaryStyle = (Style)FindResource("PrimaryButton");
+
             imagesPanel.Children.Clear();
             foreach (var item in entry)
             {
-                StackPanel entryPanel = new();
-                Grid grid = new()
+                var card = new Border
                 {
-                    Margin = new System.Windows.Thickness(10)
+                    Background = cardBg,
+                    BorderBrush = cardBorder,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(12),
+                    Padding = new Thickness(8),
+                    Margin = new Thickness(0, 0, 12, 0),
+                    Width = 720,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    SnapsToDevicePixels = true,
+                    Effect = new DropShadowEffect
+                    {
+                        Color = Colors.Black,
+                        Opacity = 0.45,
+                        BlurRadius = 24,
+                        ShadowDepth = 0
+                    }
                 };
-                System.Windows.Controls.Image img = new()
+                // Subtle hover highlight for a modern feel.
+                card.MouseEnter += (s, e) => card.BorderBrush = accent;
+                card.MouseLeave += (s, e) => card.BorderBrush = cardBorder;
+
+                // Wide card: the image takes the star-sized column,
+                // info + actions live in the fixed side panel.
+                var body = new Grid();
+                body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(180) });
+
+                // Image viewport with phone-wallpaper crop preview.
+                var imageFrame = new Border
                 {
-                    Height = 700,
+                    Height = 680,
+                    CornerRadius = new CornerRadius(8),
+                    Background = new SolidColorBrush(Color.FromRgb(0x0A, 0x0A, 0x0C)),
+                    BorderBrush = cardBorder,
+                    BorderThickness = new Thickness(1),
+                    ClipToBounds = true,
+                    SnapsToDevicePixels = true
+                };
+                var viewport = new Grid();
+                var img = new System.Windows.Controls.Image
+                {
                     Stretch = Stretch.Uniform,
                     HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(1),
                     Source = item.BitmapImage,
                 };
-                grid.Children.Add(img);
-                Label label = new()
+                RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+                viewport.Children.Add(img);
+                var phoneOverlay = BuildPhoneOverlay(success, item.BitmapImage);
+                phoneOverlay.Visibility = showPhonePreview ? Visibility.Visible : Visibility.Collapsed;
+                viewport.Children.Add(phoneOverlay);
+                imageFrame.Child = viewport;
+                Grid.SetColumn(imageFrame, 0);
+                body.Children.Add(imageFrame);
+
+                // Side info panel next to the image.
+                var side = new Grid
                 {
-                    Content = item.Name,
-                    Visibility = Visibility.Collapsed
+                    Margin = new Thickness(10, 0, 0, 0)
                 };
-                grid.Children.Add(label);
-                Rectangle rect = new()
+                side.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                side.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                side.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                side.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                side.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                side.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                Grid.SetColumn(side, 1);
+                body.Children.Add(side);
+
+                // Subreddit pill.
+                var subPill = new Border
                 {
-                    Stroke = Brushes.LightGreen,
-                    Width = 316,
-                    Height = 701,
-                    Fill = Brushes.Transparent,
-                    StrokeThickness = 2
+                    Background = accentSoft,
+                    CornerRadius = new CornerRadius(14),
+                    Padding = new Thickness(10, 5, 12, 5),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Center
                 };
-                grid.Children.Add(rect);
-                entryPanel.Children.Add(grid);
-                StackPanel infoPanel = new()
+                var subRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+                subRow.Children.Add(new Ellipse
+                {
+                    Width = 7,
+                    Height = 7,
+                    Fill = accent,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+                subRow.Children.Add(new TextBlock
+                {
+                    Text = "r/" + item.SubredditName,
+                    FontSize = 12.5,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = textPrimary,
+                    Margin = new Thickness(7, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    MaxWidth = 132
+                });
+                subPill.Child = subRow;
+                Grid.SetRow(subPill, 0);
+                side.Children.Add(subPill);
+
+                var dimsText = new TextBlock
+                {
+                    Text = $"{item.Width} × {item.Height}",
+                    FontSize = 12,
+                    Foreground = textMuted,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(2, 8, 0, 0)
+                };
+                Grid.SetRow(dimsText, 1);
+                side.Children.Add(dimsText);
+
+                // Upvotes pill.
+                var statsRow = new StackPanel
                 {
                     Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin = new System.Windows.Thickness(10)
+                    Margin = new Thickness(0, 10, 0, 0)
                 };
-                TextBox subredditDisplay = new TextBox()
+                var votesPill = new Border
                 {
-                    IsReadOnly = true,
-                    FontSize = 28,
-                    Margin = new System.Windows.Thickness(5),
-                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Background = fieldBg,
+                    BorderBrush = cardBorder,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(14),
+                    Padding = new Thickness(10, 5, 12, 5)
+                };
+                var votesText = new TextBlock { FontSize = 13, FontWeight = FontWeights.SemiBold };
+                votesText.Inlines.Add(new System.Windows.Documents.Run("▲ ") { Foreground = accent });
+                votesText.Inlines.Add(new System.Windows.Documents.Run(item.Upvotes.ToString()) { Foreground = textPrimary });
+                votesPill.Child = votesText;
+                statsRow.Children.Add(votesPill);
+
+                statsRow.Children.Add(new TextBlock
+                {
+                    Text = "#" + item.EntryId,
+                    FontSize = 12,
+                    Foreground = textMuted,
                     VerticalAlignment = VerticalAlignment.Center,
-                    TextAlignment = TextAlignment.Center,
-                    Text = item.SubredditName
-                };
-                AdjustTextBoxWidth(subredditDisplay);
-                infoPanel.Children.Add(subredditDisplay);
-                TextBox upvotesDisplay = new TextBox()
+                    Margin = new Thickness(10, 0, 0, 0)
+                });
+                Grid.SetRow(statsRow, 2);
+                side.Children.Add(statsRow);
+
+                var cropHint = new TextBlock
                 {
-                    IsReadOnly = true,
-                    FontSize = 28,
-                    Margin = new System.Windows.Thickness(5),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    TextAlignment = TextAlignment.Center,
-                    Text = item.Upvotes.ToString()
+                    Text = "Green frame shows the phone wallpaper crop.",
+                    FontSize = 11,
+                    Foreground = textMuted,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(2, 0, 0, 10)
                 };
-                AdjustTextBoxWidth(upvotesDisplay);
-                infoPanel.Children.Add(upvotesDisplay);
-                TextBox dimensionsDisplay = new TextBox()
+                Grid.SetRow(cropHint, 4);
+                side.Children.Add(cropHint);
+
+                // Save action pinned to the bottom of the side panel.
+                var download = new Button
                 {
-                    IsReadOnly = true,
-                    FontSize = 28,
-                    Margin = new System.Windows.Thickness(5),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    TextAlignment = TextAlignment.Center,
-                };
-                dimensionsDisplay.Text = item.Width.ToString() + "x" + item.Height.ToString();
-                AdjustTextBoxWidth(dimensionsDisplay);
-                infoPanel.Children.Add(dimensionsDisplay);
-                Button download = new()
-                {
-                    Width = 140,
+                    Style = primaryStyle,
                     Height = 40,
-                    FontSize = 28,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Content = "Tego chce"
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    Margin = new Thickness(0, 0, 0, 0),
+                    Content = "♥  Save",
+                    Tag = item.Name,
+                    ToolTip = "Save this image to the downloads folder"
                 };
                 download.Click += Download_Click;
-                infoPanel.Children.Add(download);
+                Grid.SetRow(download, 5);
+                side.Children.Add(download);
 
-                entryPanel.Children.Add(infoPanel);
-                imagesPanel.Children.Add(entryPanel);
+                card.Child = body;
+                imagesPanel.Children.Add(card);
             }
         }
+
         private void Next_Click(object sender, RoutedEventArgs e)
         {
             List<MyImage>? imageBatch = reddit.GetNextImage();
@@ -181,6 +472,7 @@ namespace RedditSharp
                 SetGuiItems(imageBatch);
             }
         }
+
         private void Back_Click(object sender, RoutedEventArgs e)
         {
             List<MyImage>? imageBatch = reddit.GetPrevImage();
@@ -189,52 +481,76 @@ namespace RedditSharp
                 SetGuiItems(imageBatch);
             }
         }
-        private Object GetParents(Object element, int parentLevel)
-        {
-            if (parentLevel == 0)
-            {
-                return element;
-            }
-            if (element is FrameworkElement)
-            {
-                if (((FrameworkElement)element).Parent != null)
-                {
-                    return GetParents(((FrameworkElement)element).Parent, parentLevel - 1);
-                }
-            }
-            return element;
-        }
 
         private void Download_Click(object sender, RoutedEventArgs e)
         {
-            Object parent = GetParents(sender, 2);
-            if (parent is StackPanel entryPanel)
+            if (sender is Button { Tag: string name } button && !string.IsNullOrWhiteSpace(name))
             {
-                if (entryPanel.Children[0] is Grid grid)
-                {
-                    if (grid.Children[0] is System.Windows.Controls.Image img)
-                    {
-                        if (grid.Children[1] is Label lbl)
-                        {
-                            BitmapEncoder encoder = new PngBitmapEncoder();
-                            encoder.Frames.Add(BitmapFrame.Create((BitmapSource)img.Source));
-                            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY, lbl.Content.ToString());
-                            try
-                            {
-                                using (var fileStream = new System.IO.FileStream(path, System.IO.FileMode.CreateNew))
-                                {
-                                    encoder.Save(fileStream);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine("Image already downloaded " + ex.Message);
-                            }
-                        }
-                    }
-                }
+                SaveImageByName(button, name);
             }
         }
+
+        private void SaveImageByName(Button source, string fileName)
+        {
+            // Walk up to the card, then descend to the displayed image
+            // (the viewport now also hosts the phone-crop overlay).
+            DependencyObject? current = source;
+            while (current != null)
+            {
+                if (current is Border card && card.Child is Grid)
+                {
+                    var img = FindDescendant<System.Windows.Controls.Image>(card);
+                    if (img?.Source is BitmapSource bitmap)
+                    {
+                        SaveImageSource(bitmap, fileName);
+                        return;
+                    }
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+        }
+
+        private static T? FindDescendant<T>(DependencyObject root) where T : DependencyObject
+        {
+            int count = VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(root, i);
+                if (child is T match)
+                {
+                    return match;
+                }
+                var found = FindDescendant<T>(child);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+            return null;
+        }
+
+        private static void SaveImageSource(BitmapSource bitmap, string? fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return;
+            }
+            BitmapEncoder encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY, fileName);
+            try
+            {
+                using (var fileStream = new System.IO.FileStream(path, System.IO.FileMode.CreateNew))
+                {
+                    encoder.Save(fileStream);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Image already downloaded " + ex.Message);
+            }
+        }
+
         private void OpenFolder_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -247,6 +563,7 @@ namespace RedditSharp
                 Debug.WriteLine($"{ex.Message}");
             }
         }
+
         private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
             var scrollViewer = sender as ScrollViewer;
@@ -260,9 +577,25 @@ namespace RedditSharp
                 }
             }
         }
+
         private void ImageCountUpdate(int count)
         {
-            Dispatcher.Invoke(new Action(() => { imageCounter.Text = count.ToString(); }));
+            Dispatcher.Invoke(new Action(() =>
+            {
+                if (imageCounter != null)
+                {
+                    imageCounter.Text = count.ToString();
+                }
+            }));
+        }
+    }
+
+    internal static class FluentExtensions
+    {
+        public static T Also<T>(this T value, Action<T> action)
+        {
+            action(value);
+            return value;
         }
     }
 }

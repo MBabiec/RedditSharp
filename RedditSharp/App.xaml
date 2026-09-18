@@ -4,6 +4,188 @@
              xmlns:local="clr-namespace:RedditSharp"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+
+        <!-- ===== RedditSharp modern dark design system ===== -->
+        <FontFamily x:Key="AppFont">Segoe UI Variable Display, Segoe UI, Inter, Arial</FontFamily>
+
+        <Color x:Key="BgDeep">#0B0B0E</Color>
+        <Color x:Key="BgHeader">#121217</Color>
+        <Color x:Key="CardBg">#17171D</Color>
+        <Color x:Key="CardBorder">#26262E</Color>
+        <Color x:Key="FieldBg">#1C1C23</Color>
+        <Color x:Key="TextPrimary">#F4F4F5</Color>
+        <Color x:Key="TextSecondary">#A1A1AA</Color>
+        <Color x:Key="TextMuted">#63636B</Color>
+        <Color x:Key="Accent">#FF4500</Color>
+        <Color x:Key="AccentHover">#FF5A1F</Color>
+        <Color x:Key="AccentPressed">#D63A00</Color>
+        <Color x:Key="Success">#22C55E</Color>
+
+        <SolidColorBrush x:Key="BgDeepBrush" Color="{StaticResource BgDeep}"/>
+        <SolidColorBrush x:Key="BgHeaderBrush" Color="{StaticResource BgHeader}"/>
+        <SolidColorBrush x:Key="CardBgBrush" Color="{StaticResource CardBg}"/>
+        <SolidColorBrush x:Key="CardBorderBrush" Color="{StaticResource CardBorder}"/>
+        <SolidColorBrush x:Key="FieldBgBrush" Color="{StaticResource FieldBg}"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimary}"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondary}"/>
+        <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMuted}"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource Accent}"/>
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHover}"/>
+        <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressed}"/>
+        <SolidColorBrush x:Key="AccentSoftBrush" Color="#26FF4500"/>
+        <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource Success}"/>
+
+        <!-- Primary (accent) pill button -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="10"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#FF4500" Opacity="0.28" BlurRadius="16" ShadowDepth="0"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentPressedBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Background" Value="#2A2A32"/>
+                                <Setter Property="Foreground" Value="#71717A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Secondary / ghost button -->
+        <Style x:Key="GhostButton" TargetType="Button">
+            <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Background" Value="{StaticResource FieldBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#23232B"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#3F3F4A"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#1A1A21"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Pill toggle (e.g. phone wallpaper preview on/off) -->
+        <Style x:Key="PillToggle" TargetType="ToggleButton">
+            <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Background" Value="{StaticResource FieldBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Ellipse x:Name="dot" Width="8" Height="8" Fill="#52525B" VerticalAlignment="Center"/>
+                                <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#3F3F4A"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                <Setter TargetName="bd" Property="Background" Value="#1E2B23"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource SuccessBrush}"/>
+                                <Setter TargetName="dot" Property="Fill" Value="{StaticResource SuccessBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Slim dark scrollbar -->
+        <Style x:Key="SlimScrollBarThumb" TargetType="Thumb">
+            <Setter Property="Background" Value="#34343E"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Height" Value="8"/>
+        </Style>
+
+        <!-- Dark tooltip -->
+        <Style TargetType="ToolTip">
+            <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Background" Value="#1E1E25"/>
+            <Setter Property="BorderBrush" Value="#2E2E38"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,6"/>
+        </Style>
+
     </Application.Resources>
 </Application>

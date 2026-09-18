@@ -39,7 +39,7 @@ namespace RedditSharp
             string path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "tokens.json");
             string json = System.IO.File.ReadAllText(path);
             var tokens = JsonConvert.DeserializeObject<TokenModel>(json);
-            RedditClient client = new(tokens.AppID, tokens.RefreshToken);
+            RedditClient client = new(tokens.AppID, tokens.RefreshToken, userAgent:"c# app by /u/SorryGuysDinner7");
             LabeledMulti multis = client.Account.Me.Multis()[0];
             DateTime startTime = DateTime.UtcNow;
 

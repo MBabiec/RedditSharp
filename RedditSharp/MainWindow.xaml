@@ -5,34 +5,148 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RedditSharp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="920" Width="1000"
-        Background="DimGray"
+        Title="RedditSharp" Height="920" Width="1120"
+        MinHeight="680" MinWidth="900"
+        Background="{StaticResource BgDeepBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource AppFont}"
         WindowStartupLocation="Manual"
-        Left="50"
-        Top="50">
+        Left="50" Top="50">
     <Grid>
-        <StackPanel>
-            <ScrollViewer HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
-                <StackPanel x:Name="imagesPanel" Orientation="Horizontal">
-                    <StackPanel>
-                        <Grid Margin="10">
-                            <Image x:Name="currentImage" Height="700" Stretch="Uniform" HorizontalAlignment="Center"/>
-                            <Rectangle Stroke="LightGreen" Width="316" Height="701" Fill="Transparent" StrokeThickness="2"/>
-                        </Grid>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10, 10, 10, 10">
-                            <TextBox x:Name="subredditDisplay" IsReadOnly="True" FontSize="28" Width="300" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
-                            <TextBox x:Name="upvotesDisplay" IsReadOnly="True" FontSize="28" Width="100" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
-                            <TextBox x:Name="dimensionsDisplay" IsReadOnly="True" FontSize="28" Width="160" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="68"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ===== Header ===== -->
+        <Border Grid.Row="0"
+                Background="{StaticResource BgHeaderBrush}"
+                BorderBrush="#1F1F27" BorderThickness="0,0,0,1">
+            <Grid Margin="20,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Brand -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="34" Height="34" CornerRadius="10" Background="{StaticResource AccentBrush}"
+                            VerticalAlignment="Center">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#FF4500" Opacity="0.35" BlurRadius="14" ShadowDepth="0"/>
+                        </Border.Effect>
+                        <TextBlock Text="R" Foreground="White" FontWeight="Bold" FontSize="18"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="REDDIT" FontWeight="Bold" FontSize="16"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="SHARP" FontWeight="Light" FontSize="16"
+                                       Foreground="{StaticResource AccentBrush}" Margin="6,0,0,0"/>
                         </StackPanel>
+                        <TextBlock Text="Image browser" FontSize="11"
+                                   Foreground="{StaticResource TextMutedBrush}" Margin="0,1,0,0"/>
                     </StackPanel>
                 </StackPanel>
-            </ScrollViewer>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
-                <TextBox Name="imageCounter" Width="70" Margin="10" IsReadOnly="True" FontSize="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="0"/>
-                <Button x:Name="Back" Content="Back" Width="100" Height="40" Margin="5" Click="Back_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                <Button x:Name="Next" Content="Next" Width="100" Height="40" Margin="5" Click="Next_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                <Button x:Name="OpenFolder" Content="Open folder" Width="200" Height="40" Margin="5" Click="OpenFolder_Click" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                <!-- Status + actions -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{StaticResource FieldBgBrush}"
+                            BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1"
+                            CornerRadius="20" Padding="14,7" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse Width="8" Height="8" Fill="#22C55E" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="imageCounter" Text="0"
+                                       FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="loaded" FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <Button x:Name="OpenFolder" Content="⧉  Open folder"
+                            Style="{StaticResource GhostButton}"
+                            Click="OpenFolder_Click"
+                            ToolTip="Open the downloads folder in Explorer"/>
+                    <ToggleButton x:Name="PhonePreviewToggle" Content="Phone 9:20"
+                            Style="{StaticResource PillToggle}"
+                            IsChecked="True"
+                            Margin="12,0,0,0"
+                            Checked="PhonePreviewToggle_Changed"
+                            Unchecked="PhonePreviewToggle_Changed"
+                            ToolTip="Toggle phone wallpaper crop preview (P)"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ===== Gallery ===== -->
+        <ScrollViewer Grid.Row="1"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      Background="Transparent"
+                      Padding="20,16"
+                      PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+            <StackPanel x:Name="imagesPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Empty state (removed automatically once images load) -->
+                <Border Background="{StaticResource CardBgBrush}"
+                        BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1"
+                        CornerRadius="16" Padding="48,40" Margin="0,0,16,0"
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border.Effect>
+                        <DropShadowEffect Color="Black" Opacity="0.45" BlurRadius="24" ShadowDepth="0"/>
+                    </Border.Effect>
+                    <StackPanel HorizontalAlignment="Center" MaxWidth="420">
+                        <Border Width="52" Height="52" CornerRadius="16"
+                                Background="{StaticResource AccentSoftBrush}"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="◐" FontSize="24" Foreground="{StaticResource AccentBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Fetching fresh images…"
+                                   FontSize="20" FontWeight="SemiBold" TextAlignment="Center"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,16,0,0"/>
+                        <TextBlock Text="Use Next / Back below — or the ← → arrow keys — to browse. Scroll sideways to pan."
+                                   FontSize="13" TextAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
             </StackPanel>
-        </StackPanel>
+        </ScrollViewer>
+
+        <!-- ===== Footer / navigation ===== -->
+        <Border Grid.Row="2"
+                Background="{StaticResource BgHeaderBrush}"
+                BorderBrush="#1F1F27" BorderThickness="0,1,0,0"
+                Padding="20,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="← → navigate  •  P phone crop  •  scroll to pan"
+                           FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                           VerticalAlignment="Center"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button x:Name="Back" Content="‹  Back"
+                            Style="{StaticResource GhostButton}"
+                            Click="Back_Click" Margin="0,0,10,0"
+                            ToolTip="Previous batch (←)"/>
+                    <Button x:Name="Next" Content="Next  ›"
+                            Style="{StaticResource PrimaryButton}"
+                            Click="Next_Click"
+                            ToolTip="Next batch (→)"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="2" Text="RedditSharp • sleek edition"
+                           FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
     </Grid>
 </Window>
