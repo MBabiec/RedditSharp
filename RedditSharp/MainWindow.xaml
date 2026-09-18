@@ -71,6 +71,11 @@
                             Style="{StaticResource GhostButton}"
                             Click="OpenFolder_Click"
                             ToolTip="Open the downloads folder in Explorer"/>
+                    <Button x:Name="UploadToDrive" Content="⇪  Upload to Drive"
+                            Style="{StaticResource GhostButton}"
+                            Margin="12,0,0,0"
+                            Click="UploadToDrive_Click"
+                            ToolTip="Upload all files in the downloads folder to Google Drive (service account)"/>
                     <ToggleButton x:Name="PhonePreviewToggle" Content="Phone 9:20"
                             Style="{StaticResource PillToggle}"
                             IsChecked="True"

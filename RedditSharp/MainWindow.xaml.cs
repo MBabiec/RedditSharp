@@ -865,6 +865,45 @@ namespace RedditSharp
             }
         }
 
+        private async void UploadToDrive_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button)
+            {
+                return;
+            }
+            string folder = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY);
+            if (!Directory.Exists(folder) || Directory.GetFiles(folder).Length == 0)
+            {
+                MessageBox.Show("Downloads folder is empty — nothing to upload.",
+                    "Upload to Drive", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            button.IsEnabled = false;
+            string originalContent = button.Content?.ToString() ?? "Upload to Drive";
+            var progress = new Progress<string>(fileName => button.Content = $"⇪ {fileName}");
+            try
+            {
+                GoogleDriveUploader.UploadResult result =
+                    await GoogleDriveUploader.UploadFolderAsync(folder, progress);
+                MessageBox.Show(
+                    $"Done: {result.Uploaded} uploaded, {result.Skipped} skipped, {result.Failed} failed.",
+                    "Upload to Drive", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Drive upload failed: {ex.Message}");
+                MessageBox.Show($"Upload failed: {ex.Message}\n\n" +
+                    "Check GoogleDriveUploader.ServiceAccountKeyPath and DriveFolderId.",
+                    "Upload to Drive", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                button.Content = originalContent;
+                button.IsEnabled = true;
+            }
+        }
+
         private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
             var scrollViewer = sender as ScrollViewer;
