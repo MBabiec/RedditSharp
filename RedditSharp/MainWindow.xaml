@@ -78,6 +78,12 @@
                             Checked="PhonePreviewToggle_Changed"
                             Unchecked="PhonePreviewToggle_Changed"
                             ToolTip="Toggle phone wallpaper crop preview (P)"/>
+                    <ToggleButton x:Name="ReviewModeToggle" Content="★  Review"
+                            Style="{StaticResource PillToggle}"
+                            Margin="12,0,0,0"
+                            Checked="ReviewModeToggle_Changed"
+                            Unchecked="ReviewModeToggle_Changed"
+                            ToolTip="Review saved images from the downloads folder (R)"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -128,7 +134,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Text="← → navigate  •  P phone crop  •  scroll to pan"
+                <TextBlock Grid.Column="0" Text="← → navigate  •  P phone crop  •  R review  •  scroll to pan"
                            FontSize="12" Foreground="{StaticResource TextMutedBrush}"
                            VerticalAlignment="Center"/>
 

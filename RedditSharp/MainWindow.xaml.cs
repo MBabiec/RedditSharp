@@ -20,6 +20,12 @@ namespace RedditSharp
         private readonly Redditer reddit;
         private bool showPhonePreview = true;
         private const double PhoneAspect = 9.0 / 20.0;
+        // Review mode: images from the downloads folder, whole queue kept in memory.
+        private bool isReviewMode;
+        private readonly List<MyImage> reviewItems = new();
+        private int reviewIndex = -1;
+        // Last reddit batch, restored when leaving review mode.
+        private List<MyImage>? lastBrowseBatch;
 
         public MainWindow()
         {
@@ -76,6 +82,223 @@ namespace RedditSharp
                 }
                 e.Handled = true;
             }
+            else if (e.Key == Key.R)
+            {
+                if (ReviewModeToggle != null)
+                {
+                    ReviewModeToggle.IsChecked = !ReviewModeToggle.IsChecked;
+                }
+                e.Handled = true;
+            }
+        }
+
+        private void ReviewModeToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            bool checkedNow;
+            if (sender is System.Windows.Controls.Primitives.ToggleButton toggle)
+            {
+                checkedNow = toggle.IsChecked == true;
+            }
+            else if (ReviewModeToggle != null)
+            {
+                checkedNow = ReviewModeToggle.IsChecked == true;
+            }
+            else
+            {
+                return;
+            }
+            // During InitializeComponent the toggle fires before imagesPanel exists.
+            if (imagesPanel == null)
+            {
+                return;
+            }
+            if (checkedNow)
+            {
+                EnterReviewMode();
+            }
+            else
+            {
+                ExitReviewMode();
+            }
+        }
+
+        private void EnterReviewMode()
+        {
+            isReviewMode = true;
+            LoadReviewQueue();
+            if (reviewItems.Count == 0)
+            {
+                reviewIndex = -1;
+                ShowPlaceholder("No saved images",
+                    "Your downloads folder is empty. Browse reddit and hit ♥ Save first.");
+                UpdateReviewCounter();
+                return;
+            }
+            reviewIndex = 0;
+            SetGuiItems(new List<MyImage> { reviewItems[reviewIndex] });
+            UpdateReviewCounter();
+        }
+
+        private void ExitReviewMode()
+        {
+            isReviewMode = false;
+            reviewItems.Clear();
+            reviewIndex = -1;
+            if (lastBrowseBatch != null)
+            {
+                SetGuiItems(lastBrowseBatch);
+                return;
+            }
+            ShowPlaceholder("Browse mode",
+                "Use Next / Back below — or the ← → arrow keys — to browse reddit.");
+        }
+
+        /// <summary>
+        /// Loads every decodable file from the downloads folder into memory.
+        /// Nothing is ever evicted: the whole queue stays available for
+        /// Next / Back navigation at all times.
+        /// </summary>
+        private void LoadReviewQueue()
+        {
+            reviewItems.Clear();
+            string folder = System.IO.Path.Combine(Directory.GetCurrentDirectory(), DOWNLOAD_DIRECTORY);
+            if (!Directory.Exists(folder))
+            {
+                return;
+            }
+            string[] files = Directory.GetFiles(folder);
+            Array.Sort(files, StringComparer.OrdinalIgnoreCase);
+            int position = 0;
+            foreach (string file in files)
+            {
+                try
+                {
+                    byte[] bytes = File.ReadAllBytes(file);
+                    var bitmap = new BitmapImage();
+                    using (var ms = new MemoryStream(bytes))
+                    {
+                        bitmap.BeginInit();
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.StreamSource = ms;
+                        bitmap.EndInit();
+                        bitmap.Freeze();
+                    }
+                    string fileName = System.IO.Path.GetFileName(file);
+                    reviewItems.Add(new MyImage(
+                        file, 0, ParseSubreddit(fileName),
+                        bitmap.PixelWidth, bitmap.PixelHeight, fileName,
+                        bitmap, 0, position++, fileName));
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Skipping undecodable file {file}: {ex.Message}");
+                }
+            }
+        }
+
+        private static string ParseSubreddit(string fileName)
+        {
+            // Saved files are named {Subreddit}_{Id}.{ext}; the id never
+            // contains '_', so split on the last one (subreddits may).
+            string stem = System.IO.Path.GetFileNameWithoutExtension(fileName);
+            int sep = stem.LastIndexOf('_');
+            if (sep > 0)
+            {
+                return stem[..sep];
+            }
+            return string.IsNullOrWhiteSpace(stem) ? "Saved" : stem;
+        }
+
+        private static string FormatFileSize(long bytes)
+        {
+            if (bytes < 1024)
+            {
+                return $"{bytes} B";
+            }
+            if (bytes < 1024 * 1024)
+            {
+                return $"{bytes / 1024.0:0.#} KB";
+            }
+            return $"{bytes / (1024.0 * 1024.0):0.#} MB";
+        }
+
+        private void UpdateReviewCounter()
+        {
+            if (imageCounter == null)
+            {
+                return;
+            }
+            imageCounter.Text = reviewItems.Count == 0 || reviewIndex < 0
+                ? $"0 / {reviewItems.Count}"
+                : $"{reviewIndex + 1} / {reviewItems.Count}";
+        }
+
+        private void ShowPlaceholder(string title, string subtitle)
+        {
+            var cardBg = (Brush)FindResource("CardBgBrush");
+            var cardBorder = (Brush)FindResource("CardBorderBrush");
+            var textPrimary = (Brush)FindResource("TextPrimaryBrush");
+            var textSecondary = (Brush)FindResource("TextSecondaryBrush");
+            var accent = (Brush)FindResource("AccentBrush");
+            var accentSoft = (Brush)FindResource("AccentSoftBrush");
+
+            imagesPanel.Children.Clear();
+            var card = new Border
+            {
+                Background = cardBg,
+                BorderBrush = cardBorder,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(12),
+                Padding = new Thickness(48, 40, 48, 40),
+                Margin = new Thickness(0, 0, 12, 0),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Effect = new DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    Opacity = 0.45,
+                    BlurRadius = 24,
+                    ShadowDepth = 0
+                }
+            };
+            var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, MaxWidth = 420 };
+            var icon = new Border
+            {
+                Width = 52,
+                Height = 52,
+                CornerRadius = new CornerRadius(16),
+                Background = accentSoft,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            icon.Child = new TextBlock
+            {
+                Text = "◐",
+                FontSize = 24,
+                Foreground = accent,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            stack.Children.Add(icon);
+            stack.Children.Add(new TextBlock
+            {
+                Text = title,
+                FontSize = 20,
+                FontWeight = FontWeights.SemiBold,
+                TextAlignment = TextAlignment.Center,
+                Foreground = textPrimary,
+                Margin = new Thickness(0, 16, 0, 0)
+            });
+            stack.Children.Add(new TextBlock
+            {
+                Text = subtitle,
+                FontSize = 13,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = textSecondary,
+                Margin = new Thickness(0, 8, 0, 0)
+            });
+            card.Child = stack;
+            imagesPanel.Children.Add(card);
         }
 
         private void PhonePreviewToggle_Changed(object sender, RoutedEventArgs e)
@@ -378,8 +601,29 @@ namespace RedditSharp
                     Padding = new Thickness(10, 5, 12, 5)
                 };
                 var votesText = new TextBlock { FontSize = 13, FontWeight = FontWeights.SemiBold };
-                votesText.Inlines.Add(new System.Windows.Documents.Run("▲ ") { Foreground = accent });
-                votesText.Inlines.Add(new System.Windows.Documents.Run(item.Upvotes.ToString()) { Foreground = textPrimary });
+                if (isReviewMode)
+                {
+                    // No upvote data for saved files — show file size instead.
+                    string size = "?";
+                    try
+                    {
+                        if (File.Exists(item.Url))
+                        {
+                            size = FormatFileSize(new FileInfo(item.Url).Length);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Could not read file size for {item.Url}: {ex.Message}");
+                    }
+                    votesText.Inlines.Add(new System.Windows.Documents.Run("⧉ ") { Foreground = accent });
+                    votesText.Inlines.Add(new System.Windows.Documents.Run(size) { Foreground = textPrimary });
+                }
+                else
+                {
+                    votesText.Inlines.Add(new System.Windows.Documents.Run("▲ ") { Foreground = accent });
+                    votesText.Inlines.Add(new System.Windows.Documents.Run(item.Upvotes.ToString()) { Foreground = textPrimary });
+                }
                 votesPill.Child = votesText;
                 statsRow.Children.Add(votesPill);
 
@@ -405,20 +649,32 @@ namespace RedditSharp
                 Grid.SetRow(cropHint, 4);
                 side.Children.Add(cropHint);
 
-                // Save action pinned to the bottom of the side panel.
-                var download = new Button
+                // Action pinned to the bottom of the side panel:
+                // delete (with confirmation) in review mode, save in browse mode.
+                var action = new Button
                 {
-                    Style = primaryStyle,
                     Height = 40,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
-                    Margin = new Thickness(0, 0, 0, 0),
-                    Content = "♥  Save",
-                    Tag = item.Name,
-                    ToolTip = "Save this image to the downloads folder"
+                    Margin = new Thickness(0, 0, 0, 0)
                 };
-                download.Click += Download_Click;
-                Grid.SetRow(download, 5);
-                side.Children.Add(download);
+                if (isReviewMode)
+                {
+                    action.Style = (Style)FindResource("DangerButton");
+                    action.Content = "🗑  Delete";
+                    action.Tag = item.Url;
+                    action.ToolTip = "Delete this image from the downloads folder";
+                    action.Click += Delete_Click;
+                }
+                else
+                {
+                    action.Style = primaryStyle;
+                    action.Content = "♥  Save";
+                    action.Tag = item.Name;
+                    action.ToolTip = "Save this image to the downloads folder";
+                    action.Click += Download_Click;
+                }
+                Grid.SetRow(action, 5);
+                side.Children.Add(action);
 
                 card.Child = body;
                 imagesPanel.Children.Add(card);
@@ -427,20 +683,104 @@ namespace RedditSharp
 
         private void Next_Click(object sender, RoutedEventArgs e)
         {
+            if (isReviewMode)
+            {
+                if (reviewItems.Count == 0)
+                {
+                    return;
+                }
+                if (reviewIndex < reviewItems.Count - 1)
+                {
+                    reviewIndex++;
+                    SetGuiItems(new List<MyImage> { reviewItems[reviewIndex] });
+                    UpdateReviewCounter();
+                }
+                return;
+            }
             List<MyImage>? imageBatch = reddit.GetNextImage();
             if (imageBatch != null)
             {
+                lastBrowseBatch = imageBatch;
                 SetGuiItems(imageBatch);
             }
         }
 
         private void Back_Click(object sender, RoutedEventArgs e)
         {
+            if (isReviewMode)
+            {
+                if (reviewItems.Count == 0)
+                {
+                    return;
+                }
+                if (reviewIndex > 0)
+                {
+                    reviewIndex--;
+                    SetGuiItems(new List<MyImage> { reviewItems[reviewIndex] });
+                    UpdateReviewCounter();
+                }
+                return;
+            }
             List<MyImage>? imageBatch = reddit.GetPrevImage();
             if (imageBatch != null)
             {
+                lastBrowseBatch = imageBatch;
                 SetGuiItems(imageBatch);
             }
+        }
+
+        private void Delete_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: string path } || string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+            string fileName = System.IO.Path.GetFileName(path);
+            MessageBoxResult answer = MessageBox.Show(
+                $"Delete '{fileName}' from the downloads folder permanently?",
+                "Delete image",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (answer != MessageBoxResult.Yes)
+            {
+                return;
+            }
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to delete {path}: {ex.Message}");
+                MessageBox.Show($"Could not delete '{fileName}': {ex.Message}", "Delete failed",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            int removedAt = reviewItems.FindIndex(item =>
+                string.Equals(item.Url, path, StringComparison.OrdinalIgnoreCase));
+            if (removedAt >= 0)
+            {
+                reviewItems.RemoveAt(removedAt);
+                for (int i = 0; i < reviewItems.Count; i++)
+                {
+                    reviewItems[i].EntryId = i;
+                }
+            }
+            if (reviewItems.Count == 0)
+            {
+                reviewIndex = -1;
+                ShowPlaceholder("No saved images",
+                    "Your downloads folder is empty. Browse reddit and hit ♥ Save first.");
+            }
+            else
+            {
+                reviewIndex = Math.Min(reviewIndex, reviewItems.Count - 1);
+                SetGuiItems(new List<MyImage> { reviewItems[reviewIndex] });
+            }
+            UpdateReviewCounter();
         }
 
         private void Download_Click(object sender, RoutedEventArgs e)
@@ -543,10 +883,12 @@ namespace RedditSharp
         {
             Dispatcher.Invoke(new Action(() =>
             {
-                if (imageCounter != null)
+                // In review mode the counter shows queue position instead.
+                if (isReviewMode || imageCounter == null)
                 {
-                    imageCounter.Text = count.ToString();
+                    return;
                 }
+                imageCounter.Text = count.ToString();
             }));
         }
     }
