@@ -95,8 +95,8 @@
 
         <!-- ===== Gallery ===== -->
         <ScrollViewer Grid.Row="1"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Hidden"
+                      VerticalScrollBarVisibility="Hidden"
                       Background="Transparent"
                       Padding="20,0"
                       PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
