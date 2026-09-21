@@ -39,7 +39,12 @@ namespace RedditSharp
             reddit.OnImageCountUpdated += ImageCountUpdate;
 
             // Arrow-key navigation for a snappier feel.
-            KeyDown += MainWindow_KeyDown;
+            // Use PreviewKeyDown (tunneling from the Window down) so the
+            // keybinds work no matter which control currently has focus.
+            // A plain KeyDown (bubbling) handler never fires when an inner
+            // control such as the ScrollViewer marks the arrows handled
+            // (e.g. after clicking a Save button inside a card).
+            PreviewKeyDown += MainWindow_KeyDown;
 
             string[] files = Directory.GetFiles(DOWNLOAD_DIRECTORY);
             if (files != null && files.Length > 0)
@@ -651,11 +656,14 @@ namespace RedditSharp
 
                 // Action pinned to the bottom of the side panel:
                 // delete (with confirmation) in review mode, save in browse mode.
+                // Focusable=false so clicking it doesn't steal keyboard focus
+                // away from the Window (which would break arrow-key nav).
                 var action = new Button
                 {
                     Height = 40,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
-                    Margin = new Thickness(0, 0, 0, 0)
+                    Margin = new Thickness(0, 0, 0, 0),
+                    Focusable = false
                 };
                 if (isReviewMode)
                 {
