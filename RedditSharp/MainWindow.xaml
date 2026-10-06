@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:RedditSharp"
         mc:Ignorable="d"
         Title="RedditSharp" Height="920" Width="1120"
+        Icon="Assets/AppIcon.ico"
         MinHeight="680" MinWidth="900"
         Background="{StaticResource BgDeepBrush}"
         Foreground="{StaticResource TextPrimaryBrush}"
@@ -76,6 +77,11 @@
                             Margin="12,0,0,0"
                             Click="UploadToDrive_Click"
                             ToolTip="Upload all files in the downloads folder to Google Drive (service account)"/>
+                    <Button x:Name="ExportDriveHashes" Content="⤓  Export Drive hashes"
+                            Style="{StaticResource GhostButton}"
+                            Margin="12,0,0,0"
+                            Click="ExportDriveHashes_Click"
+                            ToolTip="List all images on Google Drive, compute PerceptualHash and save id,name,hash to data.csv (resumable)"/>
                     <ToggleButton x:Name="PhonePreviewToggle" Content="Phone 9:20"
                             Style="{StaticResource PillToggle}"
                             IsChecked="True"

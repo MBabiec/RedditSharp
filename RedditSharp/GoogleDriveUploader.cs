@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
@@ -30,8 +31,10 @@ namespace RedditSharp
         // Leave empty/null to upload to the service account's My Drive root.
         public static string? DriveFolderId { get; set; } = "1ltfMIxbQEm-LmLR7d-OUcXyEBxaGDn5u";
 
-        // TODO (optional): change if you need broader access.
-        private static readonly string[] Scopes = { DriveService.Scope.DriveFile };
+        // Full Drive scope: uploads (like before) plus listing/downloading
+        // arbitrary Drive images for the duplicate preview popup.
+        // (DriveFile alone can't read files created outside this app.)
+        private static readonly string[] Scopes = { DriveService.Scope.Drive };
 
         // TODO (optional): set to true to skip files that already exist
         // in the target folder (matched by name).
@@ -44,11 +47,18 @@ namespace RedditSharp
         /// <summary>
         /// Uploads every file in <paramref name="localFolderPath"/> to Drive.
         /// Reports per-file progress via <paramref name="progress"/> (file name being uploaded).
+        /// Before each upload, the file's PerceptualHash (same as ImageHandler)
+        /// is compared against <paramref name="hashCsvPath"/> (id,name,hash rows,
+        /// defaults to data.csv). On a match above <paramref name="similarityThreshold"/>
+        /// a popup shows the Drive image vs the new one; the user picks upload or skip.
+        /// The Drive file is never modified. If the CSV is missing, uploads proceed unchecked.
         /// </summary>
         public static async Task<UploadResult> UploadFolderAsync(
             string localFolderPath,
             IProgress<string>? progress = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            string? hashCsvPath = null,
+            double similarityThreshold = 90.0)
         {
             if (!Directory.Exists(localFolderPath))
             {
@@ -84,6 +94,9 @@ namespace RedditSharp
 
             int uploaded = 0, skipped = 0, failed = 0;
 
+            string csvPath = hashCsvPath ?? DriveHashExporter.DefaultOutputPath;
+            DriveDuplicateChecker? checker = DriveDuplicateChecker.TryLoad(csvPath, similarityThreshold);
+
             foreach (string filePath in files)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -101,8 +114,46 @@ namespace RedditSharp
                         }
                     }
 
-                    await UploadSingleFileAsync(service, filePath, cancellationToken);
+                    // Perceptual-hash duplicate check against data.csv.
+                    ulong localHash = 0;
+                    bool hashComputed = false;
+                    if (checker != null)
+                    {
+                        var hit = TryFindDuplicate(filePath, checker, out localHash, out hashComputed);
+                        if (hit != null)
+                        {
+                            bool uploadAnyway = await AskUploadAnywayAsync(
+                                service, filePath, fileName, localHash, hit, cancellationToken);
+                            if (!uploadAnyway)
+                            {
+                                skipped++;
+                                continue;
+                            }
+                        }
+                    }
+
+                    string? newId = await UploadSingleFileAsync(service, filePath, cancellationToken);
                     uploaded++;
+
+                    // Remember the new hash so later files in this run (and
+                    // future runs) match against it. Never touches Drive content.
+                    if (checker != null && hashComputed && !string.IsNullOrEmpty(newId))
+                    {
+                        var entry = new DriveDuplicateChecker.DriveEntry(
+                            newId, fileName, localHash);
+                        checker.Add(entry);
+                        try
+                        {
+                            await File.AppendAllTextAsync(
+                                csvPath,
+                                $"{EscapeCsv(newId)},{EscapeCsv(fileName)},{localHash:x16}{Environment.NewLine}",
+                                cancellationToken);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Could not append to {csvPath}: {ex.Message}");
+                        }
+                    }
                 }
                 catch (Exception)
                 {
@@ -112,6 +163,110 @@ namespace RedditSharp
             }
 
             return new UploadResult(uploaded, skipped, failed);
+        }
+
+        /// <summary>
+        /// Returns the duplicate hit for a local file, or null when there is
+        /// none (or the file isn't a decodable image – then it uploads unchecked).
+        /// </summary>
+        private static DriveDuplicateChecker.DuplicateHit? TryFindDuplicate(
+            string filePath, DriveDuplicateChecker checker,
+            out ulong localHash, out bool hashComputed)
+        {
+            localHash = 0;
+            hashComputed = false;
+            try
+            {
+                byte[] bytes = File.ReadAllBytes(filePath);
+                localHash = checker.ComputeLocalHash(bytes);
+                hashComputed = true;
+                return checker.FindSimilar(localHash);
+            }
+            catch (Exception ex)
+            {
+                // Non-image / corrupt file: don't block the upload.
+                System.Diagnostics.Debug.WriteLine($"Hash check skipped for {filePath}: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Downloads the Drive match and shows the side-by-side popup.
+        /// Returns true = upload anyway, false = skip. The Drive file is
+        /// never modified. Fail-open: if the Drive preview can't load,
+        /// the upload proceeds.
+        /// </summary>
+        private static async Task<bool> AskUploadAnywayAsync(
+            DriveService service,
+            string localPath, string localName, ulong localHash,
+            DriveDuplicateChecker.DuplicateHit hit,
+            CancellationToken ct)
+        {
+            byte[] localBytes;
+            byte[] driveBytes;
+            try
+            {
+                localBytes = await File.ReadAllBytesAsync(localPath, ct);
+                driveBytes = await DownloadBytesAsync(service, hit.Drive.Id, ct);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Duplicate preview unavailable, uploading: {ex.Message}");
+                return true;
+            }
+
+            bool? decision = null;
+            void show()
+            {
+                var dlg = new DuplicateReviewWindow(
+                    localName, localBytes,
+                    hit.Drive.Name, driveBytes,
+                    hit.Similarity)
+                {
+                    Owner = Application.Current?.MainWindow
+                };
+                decision = dlg.ShowDialog();
+            }
+
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+            {
+                await dispatcher.InvokeAsync(show);
+            }
+            else
+            {
+                show();
+            }
+
+            // Closed via X (null) counts as Skip – the safe default.
+            return decision == true;
+        }
+
+        private static async Task<byte[]> DownloadBytesAsync(
+            DriveService service, string fileId, CancellationToken ct)
+        {
+            var request = service.Files.Get(fileId);
+            using var ms = new MemoryStream();
+            var status = await request.DownloadAsync(ms, ct);
+            if (status == null || status.Status == Google.Apis.Download.DownloadStatus.Failed)
+            {
+                throw new IOException($"Download failed for {fileId}: {status?.Exception?.Message}");
+            }
+            return ms.ToArray();
+        }
+
+        private static string EscapeCsv(string? value)
+        {
+            value ??= string.Empty;
+            if (value.Contains('"'))
+            {
+                value = value.Replace("\"", "\"\"");
+            }
+            if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            {
+                return $"\"{value}\"";
+            }
+            return value;
         }
 
         private static async Task<bool> FileExistsAsync(

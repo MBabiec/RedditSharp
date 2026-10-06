@@ -912,6 +912,37 @@ namespace RedditSharp
             }
         }
 
+        private async void ExportDriveHashes_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button)
+            {
+                return;
+            }
+            button.IsEnabled = false;
+            string originalContent = button.Content?.ToString() ?? "Export Drive hashes";
+            var progress = new Progress<string>(fileName => button.Content = $"⤓ {fileName}");
+            try
+            {
+                DriveHashExporter.ExportResult result =
+                    await DriveHashExporter.ExportAsync(progress: progress);
+                MessageBox.Show(
+                    $"Done: {result.Hashed} hashed, {result.Skipped} skipped, {result.Failed} failed.\nSaved to data.csv (id,name,hash).",
+                    "Export Drive hashes", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Drive hash export failed: {ex.Message}");
+                MessageBox.Show($"Export failed: {ex.Message}\n\n" +
+                    "Check serviceAccountCredentials.json and Drive sharing settings.",
+                    "Export Drive hashes", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                button.Content = originalContent;
+                button.IsEnabled = true;
+            }
+        }
+
         private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
             var scrollViewer = sender as ScrollViewer;
