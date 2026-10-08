@@ -52,6 +52,8 @@ namespace RedditSharp
         /// defaults to data.csv). On a match above <paramref name="similarityThreshold"/>
         /// a popup shows the Drive image vs the new one; the user picks upload or skip.
         /// The Drive file is never modified. If the CSV is missing, uploads proceed unchecked.
+        /// After each successful image upload, its id,name,hash row is appended to the CSV
+        /// (creating the file if needed) so future runs catch it as a duplicate.
         /// </summary>
         public static async Task<UploadResult> UploadFolderAsync(
             string localFolderPath,
@@ -95,7 +97,11 @@ namespace RedditSharp
             int uploaded = 0, skipped = 0, failed = 0;
 
             string csvPath = hashCsvPath ?? DriveHashExporter.DefaultOutputPath;
-            DriveDuplicateChecker? checker = DriveDuplicateChecker.TryLoad(csvPath, similarityThreshold);
+            // Empty checker when the CSV doesn't exist yet: no popups for this
+            // run, but every upload below still appends its hash (creating the file).
+            DriveDuplicateChecker checker =
+                DriveDuplicateChecker.TryLoad(csvPath, similarityThreshold)
+                ?? new DriveDuplicateChecker(similarityThreshold);
 
             foreach (string filePath in files)
             {
@@ -117,7 +123,6 @@ namespace RedditSharp
                     // Perceptual-hash duplicate check against data.csv.
                     ulong localHash = 0;
                     bool hashComputed = false;
-                    if (checker != null)
                     {
                         var hit = TryFindDuplicate(filePath, checker, out localHash, out hashComputed);
                         if (hit != null)
@@ -135,15 +140,33 @@ namespace RedditSharp
                     string? newId = await UploadSingleFileAsync(service, filePath, cancellationToken);
                     uploaded++;
 
-                    // Remember the new hash so later files in this run (and
-                    // future runs) match against it. Never touches Drive content.
-                    if (checker != null && hashComputed && !string.IsNullOrEmpty(newId))
+                    // Append the new image's hash so future runs (and later
+                    // files in this run) treat it as already on Drive.
+                    // Non-images have no perceptual hash, so there's nothing to store.
+                    if (!hashComputed)
                     {
-                        var entry = new DriveDuplicateChecker.DriveEntry(
-                            newId, fileName, localHash);
-                        checker.Add(entry);
                         try
                         {
+                            byte[] bytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
+                            localHash = checker.ComputeLocalHash(bytes);
+                            hashComputed = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"No hash to store for {filePath}: {ex.Message}");
+                        }
+                    }
+                    if (hashComputed && !string.IsNullOrEmpty(newId))
+                    {
+                        checker.Add(new DriveDuplicateChecker.DriveEntry(
+                            newId, fileName, localHash));
+                        try
+                        {
+                            string? dir = Path.GetDirectoryName(csvPath);
+                            if (!string.IsNullOrEmpty(dir))
+                            {
+                                Directory.CreateDirectory(dir);
+                            }
                             await File.AppendAllTextAsync(
                                 csvPath,
                                 $"{EscapeCsv(newId)},{EscapeCsv(fileName)},{localHash:x16}{Environment.NewLine}",

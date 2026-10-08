@@ -24,6 +24,8 @@ namespace RedditSharp
         private bool isReviewMode;
         private readonly List<MyImage> reviewItems = new();
         private int reviewIndex = -1;
+        // Central data.csv (id,name,hash) synced with Google Drive on launch/upload.
+        private Task? hashCsvDownloadTask;
         // Last reddit batch, restored when leaving review mode.
         private List<MyImage>? lastBrowseBatch;
 
@@ -65,6 +67,27 @@ namespace RedditSharp
                 }
             }
             reddit.Start();
+            // Pull the central data.csv from Drive so duplicate checks and
+            // exports work on the latest hashes. Fire-and-forget; upload and
+            // export handlers await it before touching the local copy.
+            hashCsvDownloadTask = DownloadHashCsvOnLaunchAsync();
+        }
+
+        private async Task DownloadHashCsvOnLaunchAsync()
+        {
+            try
+            {
+                await DriveHashCsvSync.DownloadAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"data.csv download on launch failed, using local copy: {ex.Message}");
+            }
+        }
+
+        private Task EnsureHashCsvDownloadedAsync()
+        {
+            return hashCsvDownloadTask ?? Task.CompletedTask;
         }
 
         private void MainWindow_KeyDown(object sender, KeyEventArgs e)
@@ -892,10 +915,22 @@ namespace RedditSharp
             var progress = new Progress<string>(fileName => button.Content = $"⇪ {fileName}");
             try
             {
+                await EnsureHashCsvDownloadedAsync();
                 GoogleDriveUploader.UploadResult result =
                     await GoogleDriveUploader.UploadFolderAsync(folder, progress);
+                string csvNote;
+                try
+                {
+                    await DriveHashCsvSync.UploadAsync();
+                    csvNote = "data.csv synced back to Drive.";
+                }
+                catch (Exception csvEx)
+                {
+                    Debug.WriteLine($"data.csv push after upload failed: {csvEx.Message}");
+                    csvNote = $"data.csv push failed: {csvEx.Message}";
+                }
                 MessageBox.Show(
-                    $"Done: {result.Uploaded} uploaded, {result.Skipped} skipped, {result.Failed} failed.",
+                    $"Done: {result.Uploaded} uploaded, {result.Skipped} skipped, {result.Failed} failed.\n{csvNote}",
                     "Upload to Drive", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -923,10 +958,22 @@ namespace RedditSharp
             var progress = new Progress<string>(fileName => button.Content = $"⤓ {fileName}");
             try
             {
+                await EnsureHashCsvDownloadedAsync();
                 DriveHashExporter.ExportResult result =
                     await DriveHashExporter.ExportAsync(progress: progress);
+                string csvNote;
+                try
+                {
+                    await DriveHashCsvSync.UploadAsync();
+                    csvNote = "data.csv synced back to Drive.";
+                }
+                catch (Exception csvEx)
+                {
+                    Debug.WriteLine($"data.csv push after export failed: {csvEx.Message}");
+                    csvNote = $"data.csv push failed: {csvEx.Message}";
+                }
                 MessageBox.Show(
-                    $"Done: {result.Hashed} hashed, {result.Skipped} skipped, {result.Failed} failed.\nSaved to data.csv (id,name,hash).",
+                    $"Done: {result.Hashed} hashed, {result.Skipped} skipped, {result.Failed} failed, {result.Pruned} pruned.\nSaved to data.csv (id,name,hash). {csvNote}",
                     "Export Drive hashes", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)

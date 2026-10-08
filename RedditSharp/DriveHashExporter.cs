@@ -18,10 +18,12 @@ namespace RedditSharp
     /// SixLabors.ImageSharp.Image.Load{Rgba32}(bytes).
     /// Output CSV has no header and matches data/data.csv layout:
     /// id,name,hash  where hash is 16-char lowercase hex (ulong x16).
+    /// Re-runs resume via existing IDs, and rows whose ID no longer exists
+    /// on Drive (deleted/trashed/unshared) are pruned from the CSV.
     /// </summary>
     public static class DriveHashExporter
     {
-        public sealed record ExportResult(int Hashed, int Skipped, int Failed);
+        public sealed record ExportResult(int Hashed, int Skipped, int Failed, int Pruned);
 
         private static readonly string[] Scopes = { DriveService.Scope.DriveReadonly };
 
@@ -44,7 +46,12 @@ namespace RedditSharp
                     $"Service account key not found at '{ServiceAccountKeyPath}'.");
             }
 
-            var alreadyDone = LoadDoneIds(csvPath);
+            var existingRows = LoadRows(csvPath);
+            var alreadyDone = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var (id, _) in existingRows)
+            {
+                alreadyDone.Add(id);
+            }
 
             GoogleCredential credential;
             using (var stream = new FileStream(ServiceAccountKeyPath, FileMode.Open, FileAccess.Read))
@@ -61,9 +68,9 @@ namespace RedditSharp
             var pHash = new PerceptualHash();
             int hashed = 0, skipped = 0, failed = 0;
 
-            // Append mode so a re-run resumes (same as Python gatherHashes.py).
-            using var writer = new StreamWriter(csvPath, append: true);
-
+            // Phase 1: list everything on Drive (same query as before).
+            var driveFiles = new List<Google.Apis.Drive.v3.Data.File>();
+            var driveIds = new HashSet<string>(StringComparer.Ordinal);
             string? pageToken = null;
             do
             {
@@ -77,48 +84,76 @@ namespace RedditSharp
                 list.Q = "trashed = false";
 
                 var result = await list.ExecuteAsync(cancellationToken);
-                var files = result.Files;
-                if (files == null || files.Count == 0)
+                if (result.Files != null)
                 {
-                    pageToken = result.NextPageToken;
-                    continue;
-                }
-
-                foreach (var file in files)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    bool isImage = file.MimeType != null &&
-                        file.MimeType.Contains("image", StringComparison.OrdinalIgnoreCase);
-                    if (!isImage || alreadyDone.Contains(file.Id))
+                    foreach (var f in result.Files)
                     {
-                        skipped++;
-                        continue;
-                    }
-
-                    progress?.Report(file.Name ?? file.Id);
-                    try
-                    {
-                        byte[] bytes = await DownloadBytesAsync(service, file.Id, cancellationToken);
-                        using var img = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(bytes);
-                        ulong hash = pHash.Hash(img); // identical to ImageHandler
-                        string hex = hash.ToString("x16");
-                        writer.WriteLine($"{Escape(file.Id)},{Escape(file.Name)},{hex}");
-                        await writer.FlushAsync();
-                        alreadyDone.Add(file.Id);
-                        hashed++;
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Hash failed for {file.Name} ({file.Id}): {ex.Message}");
-                        failed++;
+                        driveFiles.Add(f);
+                        if (!string.IsNullOrEmpty(f.Id))
+                        {
+                            driveIds.Add(f.Id);
+                        }
                     }
                 }
-
                 pageToken = result.NextPageToken;
             } while (!string.IsNullOrEmpty(pageToken));
 
-            return new ExportResult(hashed, skipped, failed);
+            // Phase 2: prune CSV rows whose image is gone from Drive.
+            var keptLines = new List<string>(existingRows.Count);
+            foreach (var (id, line) in existingRows)
+            {
+                if (driveIds.Contains(id))
+                {
+                    keptLines.Add(line);
+                }
+            }
+            int pruned = existingRows.Count - keptLines.Count;
+
+            // Phase 3: hash new Drive images (resume via alreadyDone).
+            var newLines = new List<string>();
+            foreach (var file in driveFiles)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                bool isImage = file.MimeType != null &&
+                    file.MimeType.Contains("image", StringComparison.OrdinalIgnoreCase);
+                if (!isImage || alreadyDone.Contains(file.Id))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                progress?.Report(file.Name ?? file.Id);
+                try
+                {
+                    byte[] bytes = await DownloadBytesAsync(service, file.Id, cancellationToken);
+                    using var img = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(bytes);
+                    ulong hash = pHash.Hash(img); // identical to ImageHandler
+                    string hex = hash.ToString("x16");
+                    newLines.Add($"{Escape(file.Id)},{Escape(file.Name)},{hex}");
+                    alreadyDone.Add(file.Id);
+                    hashed++;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Hash failed for {file.Name} ({file.Id}): {ex.Message}");
+                    failed++;
+                }
+            }
+
+            // Phase 4: rewrite CSV only if something changed (prunes or additions).
+            if (pruned > 0 || newLines.Count > 0)
+            {
+                string? dir = Path.GetDirectoryName(csvPath);
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                keptLines.AddRange(newLines);
+                await File.WriteAllLinesAsync(csvPath, keptLines, cancellationToken);
+            }
+
+            return new ExportResult(hashed, skipped, failed, pruned);
         }
 
         private static async Task<byte[]> DownloadBytesAsync(
@@ -135,12 +170,12 @@ namespace RedditSharp
             return ms.ToArray();
         }
 
-        private static HashSet<string> LoadDoneIds(string csvPath)
+        private static List<(string Id, string Line)> LoadRows(string csvPath)
         {
-            var set = new HashSet<string>(StringComparer.Ordinal);
+            var rows = new List<(string, string)>();
             if (!File.Exists(csvPath))
             {
-                return set;
+                return rows;
             }
             foreach (string line in File.ReadLines(csvPath))
             {
@@ -153,10 +188,10 @@ namespace RedditSharp
                 string id = comma < 0 ? line.Trim() : line[..comma].Trim().Trim('"');
                 if (!string.IsNullOrEmpty(id))
                 {
-                    set.Add(id);
+                    rows.Add((id, line));
                 }
             }
-            return set;
+            return rows;
         }
 
         private static string Escape(string? value)
